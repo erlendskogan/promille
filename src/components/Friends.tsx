@@ -116,7 +116,7 @@ function PersonRow({ r, rank, me, now, onClick }: { r: Row; rank?: number; me: b
   const last = a.lastEntry
   return (
     <li>
-      <button className={`person lvl-${level(a.v)} ${m.badge === 'gold' ? 'gold' : ''}`} onClick={onClick}>
+      <button className={`person lvl-${level(a.v)} ${m.badge ?? ''}`} onClick={onClick}>
         <Avatar name={m.name} gold={m.badge === 'gold'} />
         <span className="person-main">
           <strong>

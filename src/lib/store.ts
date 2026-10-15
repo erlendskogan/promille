@@ -4,7 +4,7 @@ import { supabase } from './supabase'
 
 export interface Person extends Profile {
   key: string
-  badge?: 'gold' | null
+  badge?: 'gold' | 'monogram' | null
 }
 
 export interface Member extends Person {
@@ -16,7 +16,7 @@ interface UserRow {
   name: string
   weight: number
   sex: 'm' | 'f'
-  badge?: 'gold' | null
+  badge?: 'gold' | 'monogram' | null
 }
 
 interface EntryRow {

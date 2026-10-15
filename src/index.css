@@ -2225,3 +2225,44 @@ section:first-child > .group-title {
 .profile-btn:has(.avatar.gold) {
   border-color: rgba(240, 180, 76, 0.35);
 }
+
+/* ───── Monogram profile ───── */
+.person.monogram {
+  background:
+    linear-gradient(90deg, rgba(38, 22, 9, 0.55), rgba(38, 22, 9, 0.15) 45%, rgba(38, 22, 9, 0.6)),
+    url("data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%2264%22 height=%2264%22 viewBox=%220 0 64 64%22%3E%3Cg fill=%22%23e9d4a7%22 fill-opacity=%220.62%22%3E %3Ctext x=%2216%22 y=%2220.5%22 font-family=%22Georgia,'Times New Roman',serif%22 font-size=%2212%22 font-style=%22italic%22 font-weight=%22700%22 text-anchor=%22middle%22 letter-spacing=%22-0.5%22%3ES10%3C/text%3E %3Cg transform=%22translate(48 48)%22%3E%3Ccircle r=%223.4%22 cx=%220%22 cy=%22-4.2%22/%3E%3Ccircle r=%223.4%22 cx=%224.2%22 cy=%220%22/%3E%3Ccircle r=%223.4%22 cx=%220%22 cy=%224.2%22/%3E%3Ccircle r=%223.4%22 cx=%22-4.2%22 cy=%220%22/%3E%3Ccircle r=%221.6%22 fill=%22%236b4524%22 fill-opacity=%221%22/%3E%3C/g%3E %3Cg transform=%22translate(48 16)%22%3E%3Ccircle r=%227%22 fill=%22none%22 stroke=%22%23e9d4a7%22 stroke-opacity=%220.62%22 stroke-width=%221.4%22/%3E%3Cpath d=%22M0-5.2 1.3-1.3 5.2 0 1.3 1.3 0 5.2-1.3 1.3-5.2 0-1.3-1.3Z%22/%3E%3C/g%3E %3Cg transform=%22translate(16 48)%22%3E%3Cpath d=%22M0-7.5 7.5 0 0 7.5-7.5 0Z%22 fill=%22none%22 stroke=%22%23e9d4a7%22 stroke-opacity=%220.62%22 stroke-width=%221.4%22/%3E%3Cpath d=%22M0-4.2 1.1-1.1 4.2 0 1.1 1.1 0 4.2-1.1 1.1-4.2 0-1.1-1.1Z%22/%3E%3C/g%3E %3C/g%3E%3C/svg%3E") 0 0 / 56px 56px,
+    linear-gradient(180deg, #74502c, #5e3e20);
+  box-shadow:
+    inset 0 0 0 1px rgba(233, 212, 167, 0.35),
+    0 6px 18px rgba(0, 0, 0, 0.35);
+}
+
+.person.monogram .person-main strong {
+  color: #f6e8c9;
+}
+
+.person.monogram .person-main small,
+.person.monogram .rank,
+.person.monogram .person-v small {
+  color: rgba(246, 232, 201, 0.75);
+}
+
+.person.monogram .person-v {
+  color: #fff8ea;
+  text-shadow: 0 1px 6px rgba(0, 0, 0, 0.5);
+}
+
+.person.monogram .avatar {
+  background: linear-gradient(150deg, #8a6236, #4f321a);
+  color: #f6e8c9;
+  border-color: rgba(233, 212, 167, 0.55);
+}
+
+.person.monogram .spark path {
+  stroke: #f6e8c9;
+}
+
+.people li:has(.person.monogram) + li,
+.people li + li:has(.person.monogram) {
+  border-top-color: transparent;
+}
