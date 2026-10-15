@@ -5,6 +5,7 @@ import type { Other } from './BacChart'
 import type { Store } from '../lib/store'
 import { useFeed } from '../lib/feed'
 import { Composer, Feed, PhotoInputs } from './Feed'
+import { Avatar, Name } from './Avatar'
 import { Friends } from './Friends'
 import { LogDrawer } from './LogDrawer'
 import { ChartPanel, EntryList, Hero, History, Stats } from './Overview'
@@ -105,8 +106,10 @@ export function Dashboard({ store }: { store: Store }) {
           Promille
         </div>
         <button className="profile-btn" onClick={() => setProfileOpen(true)}>
-          <span>{user.name}</span>
-          <span className="avatar">{user.name[0]?.toUpperCase()}</span>
+          <span>
+            <Name name={user.name} gold={user.badge === 'gold'} />
+          </span>
+          <Avatar name={user.name} gold={user.badge === 'gold'} />
         </button>
       </header>
 

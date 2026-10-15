@@ -3,6 +3,7 @@ import { Drawer } from 'vaul'
 import { Share, X } from 'lucide-react'
 import { analyze, fmtPromille, fmtTime, level, statusText, type Analysis } from '../lib/bac'
 import type { Member } from '../lib/store'
+import { Avatar, Name } from './Avatar'
 import { ChartPanel, EntryList, Hero, Stats } from './Overview'
 
 interface Row {
@@ -82,8 +83,8 @@ export function Friends({ members, me, now }: { members: Member[]; me: string; n
               <>
                 <div className="sheet-head">
                   <Drawer.Title className="sheet-title person-title">
-                    <span className="avatar">{open.m.name[0]?.toUpperCase()}</span>
-                    {open.m.name}
+                    <Avatar name={open.m.name} gold={open.m.badge === 'gold'} />
+                    <Name name={open.m.name} gold={open.m.badge === 'gold'} />
                   </Drawer.Title>
                   <button className="icon-btn ghost" onClick={() => setOpenKey(null)} aria-label="Lukk">
                     <X size={20} />
@@ -115,12 +116,12 @@ function PersonRow({ r, rank, me, now, onClick }: { r: Row; rank?: number; me: b
   const last = a.lastEntry
   return (
     <li>
-      <button className={`person lvl-${level(a.v)}`} onClick={onClick}>
-        <span className="avatar">{m.name[0]?.toUpperCase()}</span>
+      <button className={`person lvl-${level(a.v)} ${m.badge === 'gold' ? 'gold' : ''}`} onClick={onClick}>
+        <Avatar name={m.name} gold={m.badge === 'gold'} />
         <span className="person-main">
           <strong>
             {rank && <span className="rank">{rank}</span>}
-            {m.name}
+            <Name name={m.name} gold={m.badge === 'gold'} />
             {me && <span className="tag">deg</span>}
           </strong>
           <small>

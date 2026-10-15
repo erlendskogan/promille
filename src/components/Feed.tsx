@@ -4,9 +4,11 @@ import { Camera, ImageIcon, Trash2, X } from 'lucide-react'
 import { fmtPromille, fmtTime, level } from '../lib/bac'
 import { loadImage, type Feed as FeedState, type Post } from '../lib/feed'
 import type { Member } from '../lib/store'
+import { Avatar, Name } from './Avatar'
 
 export function Feed({ feed, members, me, now }: { feed: FeedState; members: Member[]; me: string; now: number }) {
   const names = Object.fromEntries(members.map((m) => [m.key, m.name]))
+  const gold = new Set(members.filter((m) => m.badge === 'gold').map((m) => m.key))
 
   if (feed.loaded && !feed.posts.length)
     return (
@@ -22,7 +24,7 @@ export function Feed({ feed, members, me, now }: { feed: FeedState; members: Mem
   return (
     <div className="feed">
       {feed.posts.map((p) => (
-        <PostCard key={p.id} post={p} name={names[p.userKey] ?? 'Ukjent'} mine={p.userKey === me} now={now} onDelete={() => feed.remove(p.id)} />
+        <PostCard key={p.id} post={p} name={names[p.userKey] ?? 'Ukjent'} gold={gold.has(p.userKey)} mine={p.userKey === me} now={now} onDelete={() => feed.remove(p.id)} />
       ))}
       {feed.more && feed.posts.length > 0 && (
         <button className="btn btn-secondary" onClick={feed.loadMore}>
@@ -33,7 +35,21 @@ export function Feed({ feed, members, me, now }: { feed: FeedState; members: Mem
   )
 }
 
-function PostCard({ post, name, mine, now, onDelete }: { post: Post; name: string; mine: boolean; now: number; onDelete: () => void }) {
+function PostCard({
+  post,
+  name,
+  gold,
+  mine,
+  now,
+  onDelete,
+}: {
+  post: Post
+  name: string
+  gold: boolean
+  mine: boolean
+  now: number
+  onDelete: () => void
+}) {
   const ref = useRef<HTMLDivElement>(null)
   const [src, setSrc] = useState<string | null>(null)
   const [armed, setArmed] = useState(false)
@@ -69,9 +85,11 @@ function PostCard({ post, name, mine, now, onDelete }: { post: Post; name: strin
   return (
     <article className="post">
       <header className="post-head">
-        <span className="avatar">{name[0]?.toUpperCase()}</span>
+        <Avatar name={name} gold={gold} />
         <span className="post-who">
-          <strong>{name}</strong>
+          <strong>
+            <Name name={name} gold={gold} />
+          </strong>
           <small>{ago(post.createdAt, now)}</small>
         </span>
         {post.promille !== null && (
@@ -95,7 +113,10 @@ function PostCard({ post, name, mine, now, onDelete }: { post: Post; name: strin
       </div>
       {post.caption && (
         <p className="post-caption">
-          <strong>{name}</strong> {post.caption}
+          <strong>
+            <Name name={name} gold={gold} />
+          </strong>{' '}
+          {post.caption}
         </p>
       )}
     </article>

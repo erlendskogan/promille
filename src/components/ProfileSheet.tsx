@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Drawer } from 'vaul'
 import { KeyRound, LogOut, X } from 'lucide-react'
 import type { Store } from '../lib/store'
+import { Avatar, Name } from './Avatar'
 import { PinPad } from './PinPad'
 import { ProfileFields } from './ProfileFields'
 
@@ -32,9 +33,12 @@ export function ProfileSheet({ open, onOpenChange, store }: { open: boolean; onO
           </div>
           <div className="sheet-scroll">
             <div className="profile-id">
-              <span className="avatar lg">{user.name[0]?.toUpperCase()}</span>
+              <Avatar name={user.name} gold={user.badge === 'gold'} size="lg" />
               <div>
-                <strong>{user.name}</strong>
+                <strong>
+                  <Name name={user.name} gold={user.badge === 'gold'} />
+                </strong>
+                {user.badge === 'gold' && <small className="gold-label">Gullprofil</small>}
                 <small className="muted">{user.entries.length} registreringer totalt</small>
               </div>
             </div>

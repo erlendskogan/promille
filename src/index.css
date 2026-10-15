@@ -2148,3 +2148,80 @@ section:first-child > .group-title {
   overflow: hidden;
   pointer-events: none;
 }
+
+/* ───── Gold profile ───── */
+.avatar {
+  position: relative;
+}
+
+.avatar.gold {
+  background: linear-gradient(145deg, #fff0bf 0%, #f5c45e 38%, #c98a22 72%, #8a5a12 100%);
+  color: #3b2504;
+  border-color: rgba(255, 226, 150, 0.7);
+  box-shadow:
+    0 0 0 1px rgba(255, 220, 140, 0.25),
+    0 0 16px rgba(240, 180, 76, 0.45);
+}
+
+.person .avatar.gold {
+  box-shadow:
+    0 0 0 2px var(--surface),
+    0 0 0 3.5px #f5c45e,
+    0 0 18px rgba(240, 180, 76, 0.5);
+}
+
+.avatar-crown {
+  position: absolute;
+  top: -9px;
+  right: -7px;
+  width: 17px;
+  height: 17px;
+  color: #ffd66e;
+  fill: #f5c45e;
+  transform: rotate(18deg);
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.6));
+}
+
+.avatar.lg .avatar-crown {
+  top: -12px;
+  right: -9px;
+  width: 24px;
+  height: 24px;
+}
+
+.gold-name {
+  background: linear-gradient(100deg, #f5c45e 0%, #fff3c8 25%, #f0b44c 50%, #fff3c8 75%, #f5c45e 100%);
+  background-size: 200% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  font-weight: 700;
+  animation: goldshine 5s linear infinite;
+}
+
+@keyframes goldshine {
+  to {
+    background-position: -200% 0;
+  }
+}
+
+.person.gold {
+  background: linear-gradient(90deg, rgba(240, 180, 76, 0.12), rgba(240, 180, 76, 0.02) 70%);
+  box-shadow: inset 0 0 0 1px rgba(240, 180, 76, 0.22);
+}
+
+.person.gold .rank {
+  color: #f5c45e;
+}
+
+.gold-label {
+  color: #f5c45e !important;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.profile-btn:has(.avatar.gold) {
+  border-color: rgba(240, 180, 76, 0.35);
+}

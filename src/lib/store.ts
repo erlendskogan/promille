@@ -4,6 +4,7 @@ import { supabase } from './supabase'
 
 export interface Person extends Profile {
   key: string
+  badge?: 'gold' | null
 }
 
 export interface Member extends Person {
@@ -15,6 +16,7 @@ interface UserRow {
   name: string
   weight: number
   sex: 'm' | 'f'
+  badge?: 'gold' | null
 }
 
 interface EntryRow {
@@ -36,7 +38,7 @@ const DAY = 86_400_000
 
 export const userKey = (name: string) => name.trim().toLowerCase()
 
-const toPerson = (r: UserRow): Person => ({ key: r.key, name: r.name, weight: r.weight, sex: r.sex })
+const toPerson = (r: UserRow): Person => ({ key: r.key, name: r.name, weight: r.weight, sex: r.sex, badge: r.badge ?? null })
 const toEntry = (r: EntryRow): Owned => ({
   id: r.id,
   userKey: r.user_key,
@@ -152,7 +154,7 @@ export function useStore() {
   const load = useCallback(async () => {
     const since = Date.now() - 2 * DAY
     const [u, e] = await Promise.all([
-      supabase.from('users').select('key,name,weight,sex'),
+      supabase.from('users').select('key,name,weight,sex,badge'),
       supabase.from('entries').select('*').gte('time', new Date(since).toISOString()).order('time').limit(5000),
     ])
     if (u.error || e.error) {

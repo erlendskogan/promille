@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { ArrowRight, ChevronLeft } from 'lucide-react'
 import { fmtTime, type Sex } from '../lib/bac'
 import type { LoginResult, Store } from '../lib/store'
+import { Avatar, Name } from './Avatar'
 import { PinPad } from './PinPad'
 import { ProfileFields } from './ProfileFields'
 
@@ -104,8 +105,8 @@ export function Login({ store }: { store: Store }) {
                 <div className="chips">
                   {recent.map((m) => (
                     <button type="button" key={m.key} className="chip" onClick={() => submitName(m.name)}>
-                      <span className="avatar sm">{m.name[0]?.toUpperCase()}</span>
-                      {m.name}
+                      <Avatar name={m.name} gold={m.badge === 'gold'} size="sm" />
+                      <Name name={m.name} gold={m.badge === 'gold'} />
                     </button>
                   ))}
                 </div>
@@ -140,10 +141,10 @@ export function Login({ store }: { store: Store }) {
               <ChevronLeft size={18} /> Tilbake
             </button>
             <div className="pin-head">
-              {member && step === 'pin' && <span className="avatar lg">{member.name[0]?.toUpperCase()}</span>}
+              {member && step === 'pin' && <Avatar name={member.name} gold={member.badge === 'gold'} size="lg" />}
               <h1>
                 {step === 'pin'
-                  ? member?.name ?? name
+                  ? <Name name={member?.name ?? name} gold={member?.badge === 'gold'} />
                   : step === 'confirm'
                     ? 'Gjenta PIN-koden'
                     : 'Velg en PIN-kode'}
