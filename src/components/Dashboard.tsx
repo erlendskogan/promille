@@ -1,26 +1,12 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Plus, Trash2 } from 'lucide-react'
-import { DRINK_BY_ID } from '../data/drinks'
-import {
-  bacAt,
-  describe,
-  fmtAmount,
-  fmtNum,
-  fmtPromille,
-  fmtTime,
-  sessions,
-  simulate,
-  timeBelow,
-  units,
-  type Entry,
-} from '../lib/bac'
+import { Plus } from 'lucide-react'
+import { analyze, type Entry } from '../lib/bac'
 import type { Store } from '../lib/store'
-import { BacChart } from './BacChart'
 import { DrinkArt } from './DrinkArt'
+import { Friends } from './Friends'
 import { LogDrawer } from './LogDrawer'
+import { EntryList, Evening, Hero, History } from './Overview'
 import { ProfileSheet } from './ProfileSheet'
-
-const HOUR = 3_600_000
 
 function useNow() {
   const [now, setNow] = useState(Date.now())
@@ -36,14 +22,23 @@ function useNow() {
   return now
 }
 
-const level = (v: number) => (v < 0.01 ? 'sober' : v < 0.6 ? 'low' : v < 1.2 ? 'mid' : 'high')
+type Tab = 'meg' | 'venner'
 
 export function Dashboard({ store }: { store: Store }) {
   const user = store.user!
   const now = useNow()
+  const [tab, setTab] = useState<Tab>(() => (sessionStorage.getItem('promille:tab') as Tab) || 'meg')
   const [logOpen, setLogOpen] = useState(false)
   const [profileOpen, setProfileOpen] = useState(false)
-  const [toast, setToast] = useState<{ text: string; undo?: Entry } | null>(null)
+  const [toast, setToast] = useState<{ text: string; undo?: Entry; id: number } | null>(null)
+
+  useEffect(() => {
+    try {
+      sessionStorage.setItem('promille:tab', tab)
+    } catch {
+      /* ignore */
+    }
+  }, [tab])
 
   useEffect(() => {
     if (!toast) return
@@ -51,24 +46,20 @@ export function Dashboard({ store }: { store: Store }) {
     return () => clearTimeout(t)
   }, [toast])
 
-  const all = useMemo(() => sessions(user.entries, user), [user])
-  const last = all[all.length - 1]
-  const active = last && (now <= last.end || now - last.end < 6 * HOUR) ? last : null
-  const past = (active ? all.slice(0, -1) : all).slice(-10).reverse()
+  useEffect(() => {
+    if (store.error) {
+      setToast({ text: store.error, id: Date.now() })
+      store.clearError()
+    }
+  }, [store])
 
-  const curve = useMemo(
-    () => (active ? simulate(active.entries, user, active.start, now) : []),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [active, user, Math.floor(now / 60_000)],
+  const minute = Math.floor(now / 60_000)
+  const a = useMemo(() => analyze(user.entries, user, now), [user, minute]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  const activeFriends = useMemo(
+    () => store.members.filter((m) => m.key !== user.key && m.entries.some((e) => now - e.time < 12 * 3_600_000)).length,
+    [store.members, user.key, minute], // eslint-disable-line react-hooks/exhaustive-deps
   )
-
-  const v = active ? bacAt(curve, now) : 0
-  const sober = active ? timeBelow(curve, 0, now) : null
-  const drive = active ? timeBelow(curve, 0.2, now) : null
-  const totalUnits = active ? active.entries.reduce((s, e) => s + units(e), 0) : 0
-  const rising = active && curve.length ? bacAt(curve, now + 5 * 60_000) > v + 0.001 : false
-
-  const [int, dec] = fmtPromille(v).split(',')
 
   return (
     <div className="app">
@@ -83,133 +74,46 @@ export function Dashboard({ store }: { store: Store }) {
         </button>
       </header>
 
-      <main className="content">
-        <section className={`hero lvl-${level(v)}`}>
-          <span className="eyebrow">Promille nå</span>
-          <div className="hero-num">
-            <span className="hero-int">{int}</span>
-            <span className="hero-dec">,{dec}</span>
-            <span className="hero-unit">‰</span>
-          </div>
-          <div className="hero-meta">
-            <span className="status">
-              <i />
-              {describe(v)}
-              {rising && <em> · stiger</em>}
-            </span>
-            <span className="muted">
-              {sober ? `Edru ca. kl. ${fmtTime(sober)}` : active ? 'Alkoholen er forbrent' : 'Ingen drikke logget'}
-            </span>
-          </div>
-        </section>
+      <nav className="tabs" aria-label="Visning">
+        <button className={tab === 'meg' ? 'on' : ''} onClick={() => setTab('meg')}>
+          Meg
+        </button>
+        <button className={tab === 'venner' ? 'on' : ''} onClick={() => setTab('venner')}>
+          Venner
+          {activeFriends > 0 && <span className="badge">{activeFriends}</span>}
+        </button>
+      </nav>
 
-        {active ? (
+      <main className="content" key={tab}>
+        {tab === 'meg' ? (
           <>
-            <section className="panel">
-              <div className="panel-head">
-                <h2>Kvelden</h2>
-                <span className="muted">Fra kl. {fmtTime(active.start)}</span>
-              </div>
-              <BacChart curve={curve} drinks={active.entries.map((e) => e.time)} now={now} />
-            </section>
-
-            <section className="stats">
-              <div className="stat">
-                <span className="eyebrow">Topp</span>
-                <strong>{fmtPromille(active.peak)} ‰</strong>
-                <span className="muted">kl. {fmtTime(active.peakAt)}</span>
-              </div>
-              <div className="stat">
-                <span className="eyebrow">Enheter</span>
-                <strong>{fmtNum(totalUnits)}</strong>
-                <span className="muted">
-                  {active.entries.reduce((s, e) => s + e.count, 0)} drikker
-                </span>
-              </div>
-              <div className="stat">
-                <span className="eyebrow">Under 0,2 ‰</span>
-                <strong>{drive ? fmtTime(drive) : 'Nå'}</strong>
-                <span className="muted">{drive ? `om ${duration(drive - now)}` : 'Fortsatt ikke kjør'}</span>
-              </div>
-              <div className="stat">
-                <span className="eyebrow">Helt edru</span>
-                <strong>{sober ? fmtTime(sober) : 'Nå'}</strong>
-                <span className="muted">{sober ? `om ${duration(sober - now)}` : '0,00 ‰'}</span>
-              </div>
-            </section>
-
-            <section className="panel">
-              <div className="panel-head">
-                <h2>Logget</h2>
-                <span className="muted">{active.entries.length} registreringer</span>
-              </div>
-              <ul className="entries">
-                {[...active.entries].reverse().map((e) => {
-                  const d = DRINK_BY_ID[e.drinkId]
-                  return (
-                    <li key={e.id}>
-                      <span className="entry-art" style={{ ['--tint' as string]: d?.liquid ?? '#888' }}>
-                        {d && <DrinkArt vessel={d.vessel} liquid={d.liquid} accent={d.accent} size={30} />}
-                      </span>
-                      <span className="entry-main">
-                        <strong>
-                          {e.count > 1 && <span className="count">{e.count}×</span>}
-                          {e.name}
-                        </strong>
-                        <small>
-                          {fmtAmount(e.ml)}
-                          {d?.unit === 'spirit' && d.category === 'drinker' ? ' sprit' : ''} · {fmtNum(e.abv)} % ·{' '}
-                          {fmtNum(units(e))} enh.
-                        </small>
-                      </span>
-                      <span className="entry-time">{fmtTime(e.time)}</span>
-                      <button
-                        className="icon-btn ghost sm"
-                        aria-label={`Fjern ${e.name}`}
-                        onClick={() => {
-                          store.removeEntry(e.id)
-                          setToast({ text: `${e.name} fjernet`, undo: e })
-                        }}
-                      >
-                        <Trash2 size={16} />
-                      </button>
-                    </li>
-                  )
-                })}
-              </ul>
-            </section>
+            <Hero a={a} />
+            {a.active ? (
+              <>
+                <Evening a={a} now={now} />
+                <EntryList
+                  entries={a.active.entries}
+                  onRemove={(e) => {
+                    store.removeEntry(e)
+                    setToast({ text: `${e.name} fjernet`, undo: e, id: Date.now() })
+                  }}
+                />
+              </>
+            ) : (
+              <section className="panel empty">
+                <div className="empty-art">
+                  <DrinkArt vessel="wine-glass" liquid="#3A3A42" accent="#3A3A42" size={56} />
+                </div>
+                <h2>Klar for kvelden?</h2>
+                <p className="muted">
+                  Trykk på knappen under hver gang du tar noe å drikke. Grafen og estimatene oppdateres fortløpende.
+                </p>
+              </section>
+            )}
+            <History a={a} />
           </>
         ) : (
-          <section className="panel empty">
-            <div className="empty-art">
-              <DrinkArt vessel="wine-glass" liquid="#3A3A42" accent="#3A3A42" size={56} />
-            </div>
-            <h2>Klar for kvelden?</h2>
-            <p className="muted">Trykk på knappen under hver gang du tar noe å drikke. Grafen og estimatene oppdateres fortløpende.</p>
-          </section>
-        )}
-
-        {past.length > 0 && (
-          <section className="panel">
-            <div className="panel-head">
-              <h2>Tidligere kvelder</h2>
-            </div>
-            <ul className="history">
-              {past.map((s) => (
-                <li key={s.start}>
-                  <span>
-                    <strong>{capitalize(new Date(s.start).toLocaleDateString('nb-NO', { weekday: 'long', day: 'numeric', month: 'long' }))}</strong>
-                    <small>
-                      {fmtTime(s.start)}–{fmtTime(s.end)} · {fmtNum(s.entries.reduce((a, e) => a + units(e), 0))} enheter
-                    </small>
-                  </span>
-                  <span className="history-peak">
-                    {fmtPromille(s.peak)} <small>‰ topp</small>
-                  </span>
-                </li>
-              ))}
-            </ul>
-          </section>
+          <Friends members={store.members} me={user.key} now={now} />
         )}
 
         <p className="fineprint">
@@ -225,7 +129,7 @@ export function Dashboard({ store }: { store: Store }) {
       </div>
 
       {toast && (
-        <div className="toast" role="status" key={toast.text + now}>
+        <div className="toast" role="status" key={toast.id}>
           <span>{toast.text}</span>
           {toast.undo && (
             <button
@@ -248,20 +152,10 @@ export function Dashboard({ store }: { store: Store }) {
         entries={user.entries}
         onAdd={(e) => {
           store.addEntry(e)
-          setToast({ text: `${e.count > 1 ? `${e.count}× ` : ''}${e.name} lagt til` })
+          setToast({ text: `${e.count > 1 ? `${e.count}× ` : ''}${e.name} lagt til`, id: Date.now() })
         }}
       />
       <ProfileSheet open={profileOpen} onOpenChange={setProfileOpen} store={store} />
     </div>
   )
 }
-
-function duration(ms: number) {
-  const m = Math.max(0, Math.round(ms / 60_000))
-  const h = Math.floor(m / 60)
-  const r = m % 60
-  if (!h) return `${r} min`
-  return r ? `${h} t ${r} min` : `${h} t`
-}
-
-const capitalize = (s: string) => s.charAt(0).toUpperCase() + s.slice(1)

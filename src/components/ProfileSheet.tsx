@@ -29,7 +29,7 @@ export function ProfileSheet({ open, onOpenChange, store }: { open: boolean; onO
               <span className="avatar lg">{user.name[0]?.toUpperCase()}</span>
               <div>
                 <strong>{user.name}</strong>
-                <small className="muted">{user.entries.length} drikker logget totalt</small>
+                <small className="muted">{user.entries.length} registreringer totalt</small>
               </div>
             </div>
             <ProfileFields
@@ -70,7 +70,7 @@ export function ProfileSheet({ open, onOpenChange, store }: { open: boolean; onO
                 {confirm === 'delete' ? 'Trykk igjen for å slette brukeren' : 'Slett bruker'}
               </button>
             </div>
-            <p className="fineprint">Data lagres kun i nettleseren på denne enheten.</p>
+            <p className="fineprint">Alle som bruker appen kan se navnet, promillen og drikken din.</p>
           </div>
         </Drawer.Content>
       </Drawer.Portal>

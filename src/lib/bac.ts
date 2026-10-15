@@ -132,3 +132,39 @@ export const fmtTime = (t: number) =>
   new Date(t).toLocaleTimeString('nb-NO', { hour: '2-digit', minute: '2-digit' })
 export const fmtAmount = (ml: number) =>
   ml >= 1000 ? `${fmtNum(ml / 1000, 2)} l` : ml % 10 === 0 ? `${ml / 10} cl` : `${fmtNum(ml / 10)} cl`
+
+const HOUR = 3_600_000
+
+export type Analysis = ReturnType<typeof analyze>
+
+/** Everything the UI needs about one person at time `now`. */
+export function analyze(entries: Entry[], p: Profile, now: number) {
+  const all = sessions(entries, p)
+  const last = all[all.length - 1]
+  const active = last && now - last.end < 6 * HOUR ? last : null
+  const past = (active ? all.slice(0, -1) : all).slice(-10).reverse()
+  const curve = active ? simulate(active.entries, p, active.start, now) : []
+  const v = active ? bacAt(curve, now) : 0
+  return {
+    active,
+    past,
+    curve,
+    v,
+    sober: active ? timeBelow(curve, 0, now) : null,
+    drive: active ? timeBelow(curve, 0.2, now) : null,
+    units: active ? active.entries.reduce((s, e) => s + units(e), 0) : 0,
+    drinks: active ? active.entries.reduce((s, e) => s + e.count, 0) : 0,
+    rising: active ? bacAt(curve, now + 5 * 60_000) > v + 0.001 : false,
+    lastEntry: entries.length ? entries[entries.length - 1] : null,
+  }
+}
+
+export const level = (v: number) => (v < 0.01 ? 'sober' : v < 0.6 ? 'low' : v < 1.2 ? 'mid' : 'high')
+
+export function duration(ms: number) {
+  const m = Math.max(0, Math.round(ms / 60_000))
+  const h = Math.floor(m / 60)
+  const r = m % 60
+  if (!h) return `${r} min`
+  return r ? `${h} t ${r} min` : `${h} t`
+}
