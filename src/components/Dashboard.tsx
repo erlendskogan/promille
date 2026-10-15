@@ -87,7 +87,7 @@ export function Dashboard({ store }: { store: Store }) {
     () =>
       store.members
         .filter((m) => m.key !== user.key)
-        .map((m) => ({ key: m.key, name: m.name, a: analyze(m.entries, m, minute * 60_000) }))
+        .map((m) => ({ key: m.key, name: m.name, a: analyze(m.entries, null, minute * 60_000) }))
         .filter((o) => o.a.active && o.a.curve.some((p) => p.v > 0))
         .map((o) => ({ key: o.key, name: o.name, curve: o.a.curve })),
     [store.members, user.key, minute],

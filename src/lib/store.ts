@@ -1,9 +1,11 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import type { Entry, Profile } from './bac'
+import type { Entry, Profile, Sex } from './bac'
 import { supabase } from './supabase'
 
-export interface Person extends Profile {
+/** What everyone can see. Weight and sex are private. */
+export interface Person {
   key: string
+  name: string
   badge?: 'gold' | 'monogram' | 'peach' | null
 }
 
@@ -14,9 +16,21 @@ export interface Member extends Person {
 interface UserRow {
   key: string
   name: string
-  weight: number
-  sex: 'm' | 'f'
   badge?: 'gold' | 'monogram' | 'peach' | null
+}
+
+/** Your own private profile */
+interface Mine {
+  weight: number
+  sex: Sex
+  isAdmin: boolean
+}
+
+export interface AdminUser {
+  key: string
+  name: string
+  weight: number
+  sex: Sex
 }
 
 interface EntryRow {
@@ -28,6 +42,7 @@ interface EntryRow {
   abv: number
   count: number
   time: string
+  dose?: number | null
 }
 
 type Owned = Entry & { userKey: string }
@@ -38,7 +53,7 @@ const DAY = 86_400_000
 
 export const userKey = (name: string) => name.trim().toLowerCase()
 
-const toPerson = (r: UserRow): Person => ({ key: r.key, name: r.name, weight: r.weight, sex: r.sex, badge: r.badge ?? null })
+const toPerson = (r: UserRow): Person => ({ key: r.key, name: r.name, badge: r.badge ?? null })
 const toEntry = (r: EntryRow): Owned => ({
   id: r.id,
   userKey: r.user_key,
@@ -48,6 +63,7 @@ const toEntry = (r: EntryRow): Owned => ({
   abv: r.abv,
   count: r.count,
   time: Date.parse(r.time),
+  dose: r.dose ?? null,
 })
 const toRow = (e: Owned): EntryRow => ({
   id: e.id,
@@ -124,6 +140,7 @@ export function useStore() {
   const current = session?.key ?? null
   const [status, setStatus] = useState<'loading' | 'ready' | 'error'>('loading')
   const [error, setError] = useState<string | null>(null)
+  const [mine, setMine] = useState<Mine | null>(null)
   const sessionRef = useRef(session)
   useEffect(() => {
     sessionRef.current = session
@@ -132,6 +149,7 @@ export function useStore() {
   const setMe = useCallback((s: Session | null) => {
     sessionRef.current = s
     setSession(s)
+    if (!s) setMine(null)
     storage.set(SESSION, s ? JSON.stringify(s) : null)
   }, [])
 
@@ -154,7 +172,7 @@ export function useStore() {
   const load = useCallback(async () => {
     const since = Date.now() - 2 * DAY
     const [u, e] = await Promise.all([
-      supabase.from('users').select('key,name,weight,sex,badge'),
+      supabase.from('users').select('key,name,badge'),
       supabase.from('entries').select('*').gte('time', new Date(since).toISOString()).order('time').limit(5000),
     ])
     if (u.error || e.error) {
@@ -171,8 +189,11 @@ export function useStore() {
     setStatus('ready')
     const me = sessionRef.current
     if (me) {
-      const who = await supabase.rpc('promille_whoami', { p_token: me.token })
-      if (!who.error && who.data !== me.key) setMe(null)
+      const res = await supabase.rpc('promille_me', { p_token: me.token })
+      if (res.error?.code === '28000' || (!res.error && !res.data)) return setMe(null)
+      if (res.error || sessionRef.current?.token !== me.token) return
+      const d = res.data as { weight: number; sex: Sex; is_admin: boolean }
+      setMine({ weight: d.weight, sex: d.sex, isAdmin: d.is_admin })
     }
   }, [setMe])
 
@@ -225,7 +246,8 @@ export function useStore() {
     return Object.values(people).map((p) => ({ ...p, entries: (grouped[p.key] ?? []).sort((a, b) => a.time - b.time) }))
   }, [people, entries])
 
-  const user = (current && members.find((m) => m.key === current)) || null
+  const member = (current && members.find((m) => m.key === current)) || null
+  const user = member && mine ? { ...member, ...mine } : null
 
   /** Upload entries saved by the first, local-only version of the app */
   const migrate = useCallback(async (token: string, key: string) => {
@@ -327,7 +349,7 @@ export function useStore() {
     (p: Partial<Profile>) => {
       const me = sessionRef.current
       if (!me) return
-      setPeople((s) => ({ ...s, [me.key]: { ...s[me.key], ...p } }))
+      setMine((m) => (m ? { ...m, ...p } : m))
       pending.current = { ...pending.current, ...p }
       const w = pending.current.weight
       if (w !== undefined && (w < 30 || w > 250)) return // half-typed; saved on blur
@@ -353,6 +375,13 @@ export function useStore() {
     const { error } = await supabase.rpc('promille_clear_entries', { p_token: me.token })
     if (error) fail(error)
   }, [fail])
+
+  const adminUsers = useCallback(async (): Promise<AdminUser[] | null> => {
+    const me = sessionRef.current
+    if (!me) return null
+    const { data, error } = await supabase.rpc('promille_admin_users', { p_token: me.token })
+    return error ? null : (data as AdminUser[])
+  }, [])
 
   const deleteUser = useCallback(async () => {
     const me = sessionRef.current
@@ -384,6 +413,7 @@ export function useStore() {
     updateProfile,
     clearEntries,
     deleteUser,
+    adminUsers,
   }
 }
 

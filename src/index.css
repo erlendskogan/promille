@@ -2309,3 +2309,52 @@ section:first-child > .group-title {
 .people li + li:has(.person.peach) {
   border-top-color: transparent;
 }
+
+/* ───── Admin ───── */
+.admin {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.admin-note {
+  font-size: 14px;
+  text-align: center;
+}
+
+.admin-list {
+  list-style: none;
+  margin: 0;
+  padding: 4px 14px;
+  border-radius: 16px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+}
+
+.admin-list li {
+  display: grid;
+  grid-template-columns: 1fr auto 64px;
+  align-items: baseline;
+  gap: 12px;
+  padding: 10px 0;
+  font-size: 15px;
+}
+
+.admin-list li + li {
+  border-top: 1px solid var(--line);
+}
+
+.admin-list span:first-child {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.admin-list .muted {
+  font-size: 13px;
+}
+
+.admin-list strong {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}

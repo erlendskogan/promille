@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Drawer } from 'vaul'
-import { KeyRound, LogOut, X } from 'lucide-react'
-import type { Store } from '../lib/store'
+import { KeyRound, LogOut, ShieldCheck, X } from 'lucide-react'
+import type { AdminUser, Store } from '../lib/store'
 import { Avatar, Name } from './Avatar'
 import { PinPad } from './PinPad'
 import { ProfileFields } from './ProfileFields'
@@ -11,11 +11,13 @@ export function ProfileSheet({ open, onOpenChange, store }: { open: boolean; onO
   const [confirm, setConfirm] = useState<'clear' | 'delete' | null>(null)
   const [pinStep, setPinStep] = useState<'new' | 'repeat' | 'done' | null>(null)
   const [newPin, setNewPin] = useState('')
+  const [admin, setAdmin] = useState<AdminUser[] | 'loading' | null>(null)
 
   useEffect(() => {
     if (!open) {
       setConfirm(null)
       setPinStep(null)
+      setAdmin(null)
     }
   }, [open])
 
@@ -78,6 +80,33 @@ export function ProfileSheet({ open, onOpenChange, store }: { open: boolean; onO
               </button>
             )}
 
+            {user.isAdmin && (
+              <div className="admin">
+                <button
+                  className="btn btn-secondary"
+                  onClick={async () => {
+                    if (admin) return setAdmin(null)
+                    setAdmin('loading')
+                    setAdmin((await store.adminUsers()) ?? null)
+                  }}
+                >
+                  <ShieldCheck size={17} /> {admin ? 'Skjul brukere' : 'Admin: alle brukere'}
+                </button>
+                {admin === 'loading' && <p className="muted admin-note">Henter …</p>}
+                {Array.isArray(admin) && (
+                  <ul className="admin-list">
+                    {admin.map((u) => (
+                      <li key={u.key}>
+                        <span>{u.name}</span>
+                        <span className="muted">{u.sex === 'm' ? 'Mann' : 'Kvinne'}</span>
+                        <strong>{u.weight} kg</strong>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            )}
+
             <div className="profile-actions">
               <button
                 className="btn btn-secondary"
@@ -109,7 +138,7 @@ export function ProfileSheet({ open, onOpenChange, store }: { open: boolean; onO
                 {confirm === 'delete' ? 'Trykk igjen for å slette brukeren' : 'Slett bruker'}
               </button>
             </div>
-            <p className="fineprint">Alle som bruker appen kan se navnet, promillen og drikken din, men bare du kan endre den.</p>
+            <p className="fineprint">Alle som bruker appen kan se navnet, promillen og drikken din. Vekt og kjønn er private, og bare du kan endre det du har logget.</p>
           </div>
         </Drawer.Content>
       </Drawer.Portal>

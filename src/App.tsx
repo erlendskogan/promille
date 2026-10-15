@@ -22,7 +22,7 @@ export default function App() {
       </div>
     )
 
-  if (store.status === 'loading' && store.hasSession)
+  if (store.hasSession && !store.user)
     return (
       <div className="splash">
         <div className="brand pulse">

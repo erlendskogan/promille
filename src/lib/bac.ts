@@ -15,7 +15,12 @@ export interface Entry {
   abv: number
   count: number
   time: number
+  /** Promille this entry adds for its owner, computed by the database */
+  dose?: number | null
 }
+
+/** Weight and sex are only known for yourself; friends' entries carry their own dose */
+export type Body = Partial<Pick<Profile, 'weight' | 'sex'>> | null
 
 const ETHANOL_DENSITY = 0.789
 /** Norsk alkoholenhet ≈ 12 g ren alkohol */
@@ -31,10 +36,14 @@ export const grams = (e: Pick<Entry, 'ml' | 'abv' | 'count'>) =>
 
 export const units = (e: Pick<Entry, 'ml' | 'abv' | 'count'>) => grams(e) / GRAMS_PER_UNIT
 
-const widmarkR = (p: Profile) => (p.sex === 'm' ? 0.68 : 0.55)
+const widmarkR = (sex?: Sex) => (sex === 'm' ? 0.68 : 0.55)
 
 /** Peak contribution of a set of grams, ignoring elimination */
-export const promilleOf = (g: number, p: Profile) => g / (p.weight * widmarkR(p))
+export const promilleOf = (g: number, p: Pick<Profile, 'weight' | 'sex'>) => g / (p.weight * widmarkR(p.sex))
+
+/** Promille one entry adds: from the database when known, else from your own body */
+const doseOf = (e: Entry, p: Body) =>
+  e.dose ?? (p?.weight ? grams(e) / (p.weight * widmarkR(p.sex)) : 0)
 
 export interface Session {
   entries: Entry[]
@@ -49,8 +58,8 @@ export interface Session {
  * Minute-by-minute Widmark simulation with linear absorption.
  * Returns samples from `from` until BAC is back at 0 (and at least `until`).
  */
-export function simulate(entries: Entry[], p: Profile, from: number, until = from) {
-  const r = p.weight * widmarkR(p)
+export function simulate(entries: Entry[], p: Body, from: number, until = from) {
+  const doses = entries.map((e) => doseOf(e, p))
   const step = MIN
   const burn = ELIMINATION / 60
   const out: { t: number; v: number }[] = []
@@ -58,12 +67,12 @@ export function simulate(entries: Entry[], p: Profile, from: number, until = fro
   const last = Math.max(...entries.map((e) => e.time), from)
   for (let t = from; ; t += step) {
     let absorbed = 0
-    for (const e of entries) {
+    entries.forEach((e, i) => {
       const dt = (t - e.time) / MIN
-      if (dt <= 0 || dt > ABSORPTION_MIN) continue
-      absorbed += grams(e) / ABSORPTION_MIN
-    }
-    v = Math.max(0, v + absorbed / r - burn)
+      if (dt <= 0 || dt > ABSORPTION_MIN) return
+      absorbed += doses[i] / ABSORPTION_MIN
+    })
+    v = Math.max(0, v + absorbed - burn)
     out.push({ t, v })
     const absorbing = t <= last + ABSORPTION_MIN * MIN
     if (!absorbing && v <= 0 && t >= until) break
@@ -73,7 +82,7 @@ export function simulate(entries: Entry[], p: Profile, from: number, until = fro
 }
 
 /** Split all entries into drinking sessions (separated by a return to 0 ‰). */
-export function sessions(all: Entry[], p: Profile): Session[] {
+export function sessions(all: Entry[], p: Body): Session[] {
   const sorted = [...all].sort((a, b) => a.time - b.time)
   const result: Session[] = []
   let cur: Entry[] = []
@@ -138,7 +147,7 @@ const HOUR = 3_600_000
 export type Analysis = ReturnType<typeof analyze>
 
 /** Everything the UI needs about one person at time `now`. */
-export function analyze(entries: Entry[], p: Profile, now: number) {
+export function analyze(entries: Entry[], p: Body, now: number) {
   const all = sessions(entries, p)
   const last = all[all.length - 1]
   const active = last && now - last.end < 6 * HOUR ? last : null

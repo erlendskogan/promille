@@ -14,7 +14,7 @@ interface Row {
 export function Friends({ members, me, now }: { members: Member[]; me: string; now: number }) {
   const minute = Math.floor(now / 60_000)
   const rows = useMemo<Row[]>(
-    () => members.map((m) => ({ m, a: analyze(m.entries, m, minute * 60_000) })),
+    () => members.map((m) => ({ m, a: analyze(m.entries, null, minute * 60_000) })),
     [members, minute],
   )
   const [openKey, setOpenKey] = useState<string | null>(null)
