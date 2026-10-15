@@ -1569,3 +1569,123 @@ section:first-child > .group-title {
     display: none;
   }
 }
+
+/* ───── Chart overlay switch ───── */
+.switch-row {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+}
+
+.switch {
+  position: relative;
+  width: 40px;
+  height: 24px;
+  border-radius: 99px;
+  background: var(--surface-3);
+  border: 1px solid var(--line-strong);
+  transition: background 0.2s, border-color 0.2s;
+}
+
+.switch i {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--text-2);
+  transition: transform 0.2s cubic-bezier(0.3, 0.7, 0.4, 1.2), background 0.2s;
+}
+
+.switch.on {
+  background: var(--accent);
+  border-color: var(--accent);
+}
+
+.switch.on i {
+  transform: translateX(16px);
+  background: #fff;
+}
+
+.lg-friend {
+  background: var(--text-2);
+  opacity: 0.5;
+}
+
+.chart-note {
+  font-size: 12px;
+  padding: 6px 6px 0;
+}
+
+.tooltip-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 14px;
+  color: var(--text-2);
+  font-variant-numeric: tabular-nums;
+}
+
+.tooltip-row.me {
+  color: var(--text);
+}
+
+.tooltip-row b {
+  font-weight: 500;
+}
+
+.empty {
+  padding: 24px 24px 26px;
+}
+
+.num-field {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 4px;
+  padding: 4px 10px;
+  border-radius: 10px;
+  background: var(--surface-2);
+  border: 1px solid var(--line-strong);
+  cursor: text;
+}
+
+.num-field:focus-within {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(240, 180, 76, 0.15);
+}
+
+.num-field input {
+  all: unset;
+  width: 4ch;
+  text-align: right;
+  font-size: 17px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.num-field span {
+  color: var(--muted);
+  font-size: 14px;
+}
+
+.custom-row {
+  border-style: solid;
+  border-color: rgba(240, 180, 76, 0.3);
+  background: linear-gradient(90deg, rgba(240, 180, 76, 0.08), transparent 70%);
+}
+
+.custom-row > span:nth-child(2) {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.custom-chev {
+  color: var(--muted);
+}
+
+.custom-icon {
+  overflow: hidden;
+}

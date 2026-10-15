@@ -12,7 +12,7 @@ import {
   type Analysis,
   type Entry,
 } from '../lib/bac'
-import { BacChart } from './BacChart'
+import { BacChart, type Other } from './BacChart'
 import { DrinkArt } from './DrinkArt'
 
 export function Hero({ a, label = 'Promille nå' }: { a: Analysis; label?: string }) {
@@ -39,41 +39,75 @@ export function Hero({ a, label = 'Promille nå' }: { a: Analysis; label?: strin
   )
 }
 
-export function Evening({ a, now }: { a: Analysis; now: number }) {
+export function ChartPanel({
+  a,
+  now,
+  others,
+  overlay,
+}: {
+  a: Analysis
+  now: number
+  others?: Other[]
+  overlay?: { on: boolean; set: (v: boolean) => void; count: number }
+}) {
+  return (
+    <section className="panel">
+      <div className="panel-head">
+        <h2>{a.active ? 'Kvelden' : 'Promille'}</h2>
+        {overlay ? (
+          <label className="switch-row">
+            <span className="muted">Venner{overlay.count ? ` (${overlay.count})` : ''}</span>
+            <button
+              type="button"
+              role="switch"
+              aria-checked={overlay.on}
+              aria-label="Vis vennenes grafer"
+              className={`switch ${overlay.on ? 'on' : ''}`}
+              onClick={() => overlay.set(!overlay.on)}
+            >
+              <i />
+            </button>
+          </label>
+        ) : (
+          a.active && <span className="muted">Fra kl. {fmtTime(a.active.start)}</span>
+        )}
+      </div>
+      <BacChart
+        curve={a.curve}
+        drinks={a.active ? a.active.entries.map((e) => e.time) : []}
+        now={now}
+        others={overlay?.on ? others : undefined}
+      />
+      {overlay?.on && !overlay.count && <p className="chart-note muted">Ingen venner har promille akkurat nå.</p>}
+    </section>
+  )
+}
+
+export function Stats({ a, now }: { a: Analysis; now: number }) {
   if (!a.active) return null
   return (
-    <>
-      <section className="panel">
-        <div className="panel-head">
-          <h2>Kvelden</h2>
-          <span className="muted">Fra kl. {fmtTime(a.active.start)}</span>
-        </div>
-        <BacChart curve={a.curve} drinks={a.active.entries.map((e) => e.time)} now={now} />
-      </section>
-
-      <section className="stats">
-        <div className="stat">
-          <span className="eyebrow">Topp</span>
-          <strong>{fmtPromille(a.active.peak)} ‰</strong>
-          <span className="muted">kl. {fmtTime(a.active.peakAt)}</span>
-        </div>
-        <div className="stat">
-          <span className="eyebrow">Enheter</span>
-          <strong>{fmtNum(a.units)}</strong>
-          <span className="muted">{a.drinks} drikker</span>
-        </div>
-        <div className="stat">
-          <span className="eyebrow">Under 0,2 ‰</span>
-          <strong>{a.drive ? fmtTime(a.drive) : 'Nå'}</strong>
-          <span className="muted">{a.drive ? `om ${duration(a.drive - now)}` : 'Fortsatt ikke kjør'}</span>
-        </div>
-        <div className="stat">
-          <span className="eyebrow">Helt edru</span>
-          <strong>{a.sober ? fmtTime(a.sober) : 'Nå'}</strong>
-          <span className="muted">{a.sober ? `om ${duration(a.sober - now)}` : '0,00 ‰'}</span>
-        </div>
-      </section>
-    </>
+    <section className="stats">
+      <div className="stat">
+        <span className="eyebrow">Topp</span>
+        <strong>{fmtPromille(a.active.peak)} ‰</strong>
+        <span className="muted">kl. {fmtTime(a.active.peakAt)}</span>
+      </div>
+      <div className="stat">
+        <span className="eyebrow">Enheter</span>
+        <strong>{fmtNum(a.units)}</strong>
+        <span className="muted">{a.drinks} drikker</span>
+      </div>
+      <div className="stat">
+        <span className="eyebrow">Under 0,2 ‰</span>
+        <strong>{a.drive ? fmtTime(a.drive) : 'Nå'}</strong>
+        <span className="muted">{a.drive ? `om ${duration(a.drive - now)}` : 'Fortsatt ikke kjør'}</span>
+      </div>
+      <div className="stat">
+        <span className="eyebrow">Helt edru</span>
+        <strong>{a.sober ? fmtTime(a.sober) : 'Nå'}</strong>
+        <span className="muted">{a.sober ? `om ${duration(a.sober - now)}` : '0,00 ‰'}</span>
+      </div>
+    </section>
   )
 }
 

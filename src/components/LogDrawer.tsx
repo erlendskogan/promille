@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Drawer } from 'vaul'
-import { Check, ChevronLeft, Minus, Plus, Search, SlidersHorizontal, X } from 'lucide-react'
-import { CATEGORIES, CUSTOM, DRINKS, DRINK_BY_ID, type Category, type Drink } from '../data/drinks'
+import { Check, ChevronLeft, ChevronRight, Minus, Plus, Search, X } from 'lucide-react'
+import { CATEGORIES, DRINKS, DRINK_BY_ID, SPRIT, isLegacy, type Category, type Drink } from '../data/drinks'
 import { fmtAmount, fmtNum, fmtPromille, fmtTime, promilleOf, units, type Entry, type Profile } from '../lib/bac'
 import { DrinkArt } from './DrinkArt'
 
@@ -40,9 +40,11 @@ export function LogDrawer({ open, onOpenChange, profile, entries, onAdd }: Props
     const seen = new Set<string>()
     const out: Draft[] = []
     for (const e of [...entries].sort((a, b) => b.time - a.time)) {
-      const key = `${e.drinkId}|${e.ml}|${e.abv}`
-      const drink = DRINK_BY_ID[e.drinkId]
-      if (!drink || seen.has(key)) continue
+      // old spirit/cocktail entries and custom ones are re-logged as "Sprit"
+      const known = DRINK_BY_ID[e.drinkId]
+      const drink = !known || isLegacy(e.drinkId) || e.drinkId === 'custom' ? SPRIT : known
+      const key = `${drink.id}|${e.ml}|${e.abv}`
+      if (seen.has(key)) continue
       seen.add(key)
       out.push({ drink, ml: e.ml, abv: e.abv })
       if (out.length >= 8) break
@@ -60,7 +62,7 @@ export function LogDrawer({ open, onOpenChange, profile, entries, onAdd }: Props
           <div className="sheet-handle" />
           {draft ? (
             <Detail
-              key={draft.drink.id}
+              key={`${draft.drink.id}${draft.ml}${draft.abv}`}
               draft={draft}
               profile={profile}
               onBack={() => setDraft(null)}
@@ -111,6 +113,7 @@ function Picker(props: {
   ]
 
   const grouped = filter === 'alle' && !q
+  const spiritHit = q && SPIRIT_WORDS.some((w) => w.startsWith(q) || q.startsWith(w))
 
   return (
     <>
@@ -136,19 +139,23 @@ function Picker(props: {
               {f.label}
             </button>
           ))}
+          <button className="pill" onClick={() => onPick(SPRIT)}>
+            Sprit
+          </button>
         </div>
       )}
 
       <div className="sheet-scroll">
-        {!q && filter !== 'nylig' && (
-          <button className="custom-row" onClick={() => onPick(CUSTOM)}>
+        {((!q && filter === 'alle') || spiritHit) && (
+          <button className="custom-row" onClick={() => onPick(SPRIT)}>
             <span className="custom-icon">
-              <SlidersHorizontal size={18} />
+              <DrinkArt vessel={SPRIT.vessel} liquid={SPRIT.liquid} accent={SPRIT.accent} size={30} />
             </span>
             <span>
-              <strong>Egendefinert</strong>
-              <small>Oppgi mengde og alkoholprosent selv</small>
+              <strong>Sprit og drinker</strong>
+              <small>Skriv inn mengde og prosent</small>
             </span>
+            <ChevronRight size={18} className="custom-chev" />
           </button>
         )}
 
@@ -196,11 +203,11 @@ function Picker(props: {
             {list.map((d) => (
               <Card key={d.id} drink={d} onClick={() => onPick(d)} />
             ))}
-            {!list.length && (
+            {!list.length && !spiritHit && (
               <div className="empty-search">
                 Fant ingen treff på «{query}».{' '}
-                <button className="link" onClick={() => onPick(CUSTOM)}>
-                  Legg inn egendefinert
+                <button className="link" onClick={() => onPick(SPRIT)}>
+                  Skriv inn mengde og prosent
                 </button>
               </div>
             )}
@@ -220,6 +227,53 @@ function Card({ drink, sub, onClick }: { drink: Drink; sub?: string; onClick: ()
       <span className="card-name">{drink.name}</span>
       <span className="card-sub">{sub ?? `${fmtNum(drink.abv)} %`}</span>
     </button>
+  )
+}
+
+const SPIRIT_WORDS = [
+  'sprit', 'drink', 'shot', 'vodka', 'gin', 'rom', 'whisky', 'tequila', 'akevitt', 'jäger', 'jager', 'fisk',
+  'likør', 'konjakk', 'cognac', 'sambuca', 'fireball', 'baileys', 'cocktail', 'egendefinert',
+]
+
+/** Text input for a number, accepting comma decimals */
+function NumberField({
+  value,
+  onChange,
+  suffix,
+  scale = 1,
+  max,
+  label,
+}: {
+  value: number
+  onChange: (v: number) => void
+  suffix: string
+  scale?: number
+  max: number
+  label: string
+}) {
+  const show = (v: number) => fmtNum(v / scale, Number.isInteger(v / scale) ? 0 : 1)
+  const [text, setText] = useState(show(value))
+  const parsed = parseFloat(text.replace(',', '.'))
+  if (Number.isFinite(parsed) && Math.abs(parsed * scale - value) > 1e-6 && document.activeElement?.getAttribute('aria-label') !== label) {
+    setText(show(value))
+  }
+  return (
+    <label className="num-field">
+      <input
+        aria-label={label}
+        inputMode="decimal"
+        value={text}
+        onFocus={(e) => e.target.select()}
+        onChange={(e) => {
+          const t = e.target.value.replace(/[^\d.,]/g, '')
+          setText(t)
+          const n = parseFloat(t.replace(',', '.'))
+          if (Number.isFinite(n) && n > 0 && n <= max) onChange(n * scale)
+        }}
+        onBlur={() => setText(show(value))}
+      />
+      <span>{suffix}</span>
+    </label>
   )
 }
 
@@ -243,7 +297,7 @@ function Detail({
   onAdd: (e: Omit<Entry, 'id'>) => void
 }) {
   const { drink } = draft
-  const custom = drink.id === 'custom'
+  const custom = drink.id === 'custom' || drink.id === 'sprit'
   const [ml, setMl] = useState(draft.ml)
   const [abv, setAbv] = useState(draft.abv)
   const [count, setCount] = useState(1)
@@ -253,7 +307,7 @@ function Detail({
 
   const range =
     drink.unit === 'spirit'
-      ? { min: 10, max: 200, step: 5 }
+      ? { min: 10, max: 300, step: 5 }
       : drink.category === 'vin'
         ? { min: 20, max: 750, step: 10 }
         : custom
@@ -271,7 +325,7 @@ function Detail({
 
   const u = units({ ml, abv, count })
   const add = promilleOf(u * 12, profile)
-  const amountLabel = drink.unit === 'spirit' ? (drink.category === 'drinker' ? 'Sprit i drinken' : 'Mengde') : 'Mengde'
+  const amountLabel = drink.id === 'sprit' ? 'Mengde sprit' : drink.category === 'drinker' ? 'Sprit i drinken' : 'Mengde'
 
   return (
     <>
@@ -286,7 +340,11 @@ function Detail({
           <div>
             <Drawer.Title className="detail-name">{drink.name}</Drawer.Title>
             <p className="muted">
-              {custom ? 'Velg mengde og styrke' : `${fmtNum(abv)} % alkohol`}
+              {drink.id === 'sprit'
+                ? 'Shots, drinker og alt med sprit. Oppgi hvor mye sprit og hvor sterk den er.'
+                : custom
+                  ? 'Velg mengde og styrke'
+                  : `${fmtNum(abv)} % alkohol`}
               {drink.note ? ` · ${drink.note}` : ''}
             </p>
           </div>
@@ -295,14 +353,18 @@ function Detail({
         <div className="block">
           <div className="block-head">
             <span className="eyebrow">{amountLabel}</span>
-            <span className="value">{fmtAmount(ml)}</span>
+            {custom ? (
+              <NumberField label="Mengde i cl" value={ml} onChange={setMl} suffix="cl" scale={10} max={300} />
+            ) : (
+              <span className="value">{fmtAmount(ml)}</span>
+            )}
           </div>
-          {!custom && (
+          {(!custom || drink.id === 'sprit') && (
             <div className="chips">
               {drink.sizes.map((s) => (
                 <button key={s.label} className={`chip ${ml === s.ml ? 'on' : ''}`} onClick={() => setMl(s.ml)}>
                   {s.label}
-                  <small>{fmtAmount(s.ml)}</small>
+                  {s.label !== fmtAmount(s.ml) && <small>{fmtAmount(s.ml)}</small>}
                 </button>
               ))}
             </div>
@@ -314,9 +376,9 @@ function Detail({
             min={range.min}
             max={range.max}
             step={range.step}
-            value={ml}
+            value={Math.min(range.max, ml)}
             onChange={(e) => setMl(+e.target.value)}
-            style={{ ['--p' as string]: `${((ml - range.min) / (range.max - range.min)) * 100}%` }}
+            style={{ ['--p' as string]: `${((Math.min(range.max, ml) - range.min) / (range.max - range.min)) * 100}%` }}
           />
         </div>
 
@@ -324,12 +386,12 @@ function Detail({
           <div className="block">
             <div className="block-head">
               <span className="eyebrow">Alkoholprosent</span>
-              <span className="value">{fmtNum(abv)} %</span>
+              <NumberField label="Alkoholprosent" value={abv} onChange={setAbv} suffix="%" max={96} />
             </div>
             <div className="chips">
-              {[4.7, 12, 20, 37.5, 40].map((v) => (
+              {(drink.id === 'sprit' ? [20, 30, 35, 37.5, 40] : [4.7, 12, 20, 37.5, 40]).map((v) => (
                 <button key={v} className={`chip ${abv === v ? 'on' : ''}`} onClick={() => setAbv(v)}>
-                  {fmtNum(v)} %
+                  {fmtNum(v, Number.isInteger(v) ? 0 : 1)} %
                 </button>
               ))}
             </div>
@@ -340,9 +402,9 @@ function Detail({
               min={0.5}
               max={70}
               step={0.5}
-              value={abv}
+              value={Math.min(70, abv)}
               onChange={(e) => setAbv(+e.target.value)}
-              style={{ ['--p' as string]: `${((abv - 0.5) / 69.5) * 100}%` }}
+              style={{ ['--p' as string]: `${((Math.min(70, abv) - 0.5) / 69.5) * 100}%` }}
             />
           </div>
         )}

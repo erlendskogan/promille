@@ -47,8 +47,6 @@ export const CATEGORIES: { id: Category; label: string }[] = [
   { id: 'cider', label: 'Cider og rusbrus' },
   { id: 'seltzer', label: 'Seltzer' },
   { id: 'vin', label: 'Vin' },
-  { id: 'sprit', label: 'Sprit' },
-  { id: 'drinker', label: 'Drinker' },
 ]
 
 const can: Size[] = [
@@ -191,6 +189,10 @@ export const DRINKS: Drink[] = [
   { id: 'pappvin', name: 'Vin fra kartong', category: 'vin', abv: 13, unit: 'volume', sizes: [{ label: 'Glass', ml: 150 }, { label: 'Stort glass', ml: 250 }, { label: 'Halv liter', ml: 500 }], defaultSize: 0, vessel: 'wine-bottle', liquid: '#6E1A2C', accent: '#6E1A2C' },
   { id: 'portvin', name: 'Portvin', category: 'vin', abv: 19.5, unit: 'volume', sizes: [{ label: '6 cl', ml: 60 }, { label: '8 cl', ml: 80 }], defaultSize: 0, vessel: 'coupe', liquid: '#5A1424', accent: '#5A1424' },
 
+]
+
+/** Spirits and cocktails used to be separate drinks; kept so old entries still render. */
+const LEGACY: Drink[] = [
   // Sprit
   shot('vodka', 'Vodka', 40, '#E8EEF3', '#D7DEE6'),
   shot('gin', 'Gin', 40, '#E4F0EC', '#7FB3A6'),
@@ -255,6 +257,25 @@ export const DRINKS: Drink[] = [
   },
 ]
 
+/** Everything with spirits: the user types in amount and strength */
+export const SPRIT: Drink = {
+  id: 'sprit',
+  name: 'Sprit',
+  category: 'sprit',
+  abv: 40,
+  unit: 'spirit',
+  sizes: [
+    { label: '2 cl', ml: 20 },
+    { label: '4 cl', ml: 40 },
+    { label: '6 cl', ml: 60 },
+    { label: '8 cl', ml: 80 },
+  ],
+  defaultSize: 1,
+  vessel: 'rocks',
+  liquid: '#C98A3A',
+  accent: '#C98A3A',
+}
+
 export const CUSTOM: Drink = {
   id: 'custom',
   name: 'Egendefinert',
@@ -268,6 +289,8 @@ export const CUSTOM: Drink = {
   accent: '#C9CCD3',
 }
 
+export const isLegacy = (id: string) => LEGACY.some((d) => d.id === id)
+
 export const DRINK_BY_ID: Record<string, Drink> = Object.fromEntries(
-  [...DRINKS, CUSTOM].map((d) => [d.id, d]),
+  [...DRINKS, ...LEGACY, SPRIT, CUSTOM].map((d) => [d.id, d]),
 )

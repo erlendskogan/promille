@@ -3,7 +3,7 @@ import { Drawer } from 'vaul'
 import { Share, X } from 'lucide-react'
 import { analyze, fmtPromille, fmtTime, level, statusText, type Analysis } from '../lib/bac'
 import type { Member } from '../lib/store'
-import { EntryList, Evening, Hero } from './Overview'
+import { ChartPanel, EntryList, Hero, Stats } from './Overview'
 
 interface Row {
   m: Member
@@ -91,7 +91,8 @@ export function Friends({ members, me, now }: { members: Member[]; me: string; n
                 </div>
                 <div className="sheet-scroll stack">
                   <Hero a={open.a} />
-                  <Evening a={open.a} now={now} />
+                  {open.a.active && <ChartPanel a={open.a} now={now} />}
+                  <Stats a={open.a} now={now} />
                   {open.a.active ? (
                     <EntryList entries={open.a.active.entries} />
                   ) : (

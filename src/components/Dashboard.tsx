@@ -1,11 +1,11 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Plus } from 'lucide-react'
 import { analyze, type Entry } from '../lib/bac'
+import type { Other } from './BacChart'
 import type { Store } from '../lib/store'
-import { DrinkArt } from './DrinkArt'
 import { Friends } from './Friends'
 import { LogDrawer } from './LogDrawer'
-import { EntryList, Evening, Hero, History } from './Overview'
+import { ChartPanel, EntryList, Hero, History, Stats } from './Overview'
 import { ProfileSheet } from './ProfileSheet'
 
 function useNow() {
@@ -56,6 +56,32 @@ export function Dashboard({ store }: { store: Store }) {
   const minute = Math.floor(now / 60_000)
   const a = useMemo(() => analyze(user.entries, user, now), [user, minute]) // eslint-disable-line react-hooks/exhaustive-deps
 
+  const [overlay, setOverlay] = useState(() => {
+    try {
+      return localStorage.getItem('promille:overlay') === '1'
+    } catch {
+      return false
+    }
+  })
+  const toggleOverlay = (on: boolean) => {
+    setOverlay(on)
+    try {
+      localStorage.setItem('promille:overlay', on ? '1' : '0')
+    } catch {
+      /* ignore */
+    }
+  }
+
+  const others = useMemo<Other[]>(
+    () =>
+      store.members
+        .filter((m) => m.key !== user.key)
+        .map((m) => ({ key: m.key, name: m.name, a: analyze(m.entries, m, minute * 60_000) }))
+        .filter((o) => o.a.active && o.a.curve.some((p) => p.v > 0))
+        .map((o) => ({ key: o.key, name: o.name, curve: o.a.curve })),
+    [store.members, user.key, minute],
+  )
+
   const activeFriends = useMemo(
     () => store.members.filter((m) => m.key !== user.key && m.entries.some((e) => now - e.time < 12 * 3_600_000)).length,
     [store.members, user.key, minute], // eslint-disable-line react-hooks/exhaustive-deps
@@ -88,9 +114,15 @@ export function Dashboard({ store }: { store: Store }) {
         {tab === 'meg' ? (
           <>
             <Hero a={a} />
+            <ChartPanel
+              a={a}
+              now={now}
+              others={others}
+              overlay={{ on: overlay, set: toggleOverlay, count: others.length }}
+            />
             {a.active ? (
               <>
-                <Evening a={a} now={now} />
+                <Stats a={a} now={now} />
                 <EntryList
                   entries={a.active.entries}
                   onRemove={(e) => {
@@ -101,9 +133,6 @@ export function Dashboard({ store }: { store: Store }) {
               </>
             ) : (
               <section className="panel empty">
-                <div className="empty-art">
-                  <DrinkArt vessel="wine-glass" liquid="#3A3A42" accent="#3A3A42" size={56} />
-                </div>
                 <h2>Klar for kvelden?</h2>
                 <p className="muted">
                   Trykk på knappen under hver gang du tar noe å drikke. Grafen og estimatene oppdateres fortløpende.
