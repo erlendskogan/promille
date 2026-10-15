@@ -43,9 +43,13 @@ export function BacChart({ curve, drinks, now, others = [], height = 220 }: Prop
       end = Math.max(now, ...curves.map((c) => c[c.length - 1].t)) + 20 * MIN
       start = Math.max(start, now - 18 * HOUR)
     } else {
-      start = now - 3 * HOUR
-      end = now + HOUR
+      start = now - 2 * HOUR
+      end = now + 2 * HOUR
     }
+    // keep "now" in the middle of the chart
+    const half = Math.max(2 * HOUR, now - start, end - now)
+    start = now - half
+    end = now + half
 
     const step = Math.max(2, Math.round((end - start) / MIN / 140)) * MIN
     const row = (t: number, isNow = false): Row => {
