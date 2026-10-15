@@ -1689,3 +1689,101 @@ section:first-child > .group-title {
 .custom-icon {
   overflow: hidden;
 }
+
+/* ───── Log sheet: amount + strength ───── */
+.amounts {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.amount {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px 14px 10px;
+  border-radius: 18px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  min-width: 0;
+}
+
+.num-field.big {
+  align-self: stretch;
+  justify-content: center;
+  padding: 8px 10px;
+  border-radius: 12px;
+}
+
+.num-field.big input {
+  width: 100%;
+  min-width: 0;
+  flex: 1;
+  font-size: 30px;
+  letter-spacing: -0.03em;
+}
+
+.num-field.big span {
+  font-size: 16px;
+}
+
+.presets {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.preset {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px 8px 8px;
+  border-radius: 16px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  text-align: left;
+  min-width: 0;
+  transition: border-color 0.15s, background 0.15s, transform 0.15s;
+}
+
+.preset:active {
+  transform: scale(0.97);
+}
+
+.preset.on {
+  border-color: rgba(240, 180, 76, 0.55);
+  background: rgba(240, 180, 76, 0.08);
+}
+
+.preset-art {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 50px;
+  flex-shrink: 0;
+  border-radius: 12px;
+  background: radial-gradient(70% 70% at 50% 60%, color-mix(in srgb, var(--tint) 22%, transparent), transparent),
+    var(--surface-2);
+}
+
+.preset-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.preset-text strong {
+  font-weight: 600;
+  font-size: 15px;
+}
+
+.preset-text small {
+  color: var(--muted);
+  font-size: 12.5px;
+  white-space: nowrap;
+}
+
+.detail section .group-title {
+  margin: 10px 2px 8px;
+}

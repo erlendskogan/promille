@@ -289,8 +289,41 @@ export const CUSTOM: Drink = {
   accent: '#C9CCD3',
 }
 
-export const isLegacy = (id: string) => LEGACY.some((d) => d.id === id)
 
 export const DRINK_BY_ID: Record<string, Drink> = Object.fromEntries(
   [...DRINKS, ...LEGACY, SPRIT, CUSTOM].map((d) => [d.id, d]),
 )
+
+const quick = (id: string, name: string, ml: number, abv: number, vessel: Vessel, liquid: string, accent = liquid) =>
+  ({
+    id,
+    name,
+    category: 'ol',
+    abv,
+    unit: 'volume',
+    sizes: [{ label: name, ml }],
+    defaultSize: 0,
+    vessel,
+    liquid,
+    accent,
+  }) satisfies Drink
+
+/** The common choices shown in the log sheet */
+export const PRESETS = [
+  quick('halvliter', 'Halvliter', 500, 4.7, 'pint', '#E8B04A'),
+  quick('fire-dl', '4 dl', 400, 4.5, 'can-tall', '#E7EEF2', '#DCE3EA'),
+  quick('shot', 'Shot', 40, 40, 'shot', '#E9EEF2'),
+  quick('vinglass', 'Glass vin', 150, 13, 'wine-glass', '#7A1630'),
+]
+
+const LIGHT = quick('lett', 'Øl/cider', 330, 4.7, 'pint', '#E8B04A')
+const WINE = quick('vin', 'Vin', 150, 13, 'wine-glass', '#7A1630')
+
+for (const d of [...PRESETS, LIGHT, WINE]) DRINK_BY_ID[d.id] = d
+
+/** Name and picture for an amount + strength */
+export function drinkFor(ml: number, abv: number): Drink {
+  const preset = PRESETS.find((p) => p.sizes[0].ml === ml && p.abv === abv)
+  if (preset) return preset
+  return abv >= 20 ? SPRIT : abv >= 8 ? WINE : LIGHT
+}
