@@ -367,6 +367,8 @@ export function useStore() {
     clearError: useCallback(() => setError(null), []),
     reload: load,
     hasSession: current !== null,
+    token: session?.token ?? null,
+    fail,
     user,
     members,
     exists: (n: string) => !!people[userKey(n)],

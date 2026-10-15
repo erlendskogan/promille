@@ -1,8 +1,10 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Plus } from 'lucide-react'
+import { Camera, ImageIcon, Plus } from 'lucide-react'
 import { analyze, type Entry } from '../lib/bac'
 import type { Other } from './BacChart'
 import type { Store } from '../lib/store'
+import { useFeed } from '../lib/feed'
+import { Composer, Feed, PhotoInputs } from './Feed'
 import { Friends } from './Friends'
 import { LogDrawer } from './LogDrawer'
 import { ChartPanel, EntryList, Hero, History, Stats } from './Overview'
@@ -22,7 +24,7 @@ function useNow() {
   return now
 }
 
-type Tab = 'meg' | 'venner'
+type Tab = 'meg' | 'venner' | 'feed'
 
 export function Dashboard({ store }: { store: Store }) {
   const user = store.user!
@@ -30,6 +32,8 @@ export function Dashboard({ store }: { store: Store }) {
   const [tab, setTab] = useState<Tab>(() => (sessionStorage.getItem('promille:tab') as Tab) || 'meg')
   const [logOpen, setLogOpen] = useState(false)
   const [profileOpen, setProfileOpen] = useState(false)
+  const feed = useFeed(store.token, user.key, store.fail)
+  const [photo, setPhoto] = useState<File | null>(null)
   const [toast, setToast] = useState<{ text: string; undo?: Entry; id: number } | null>(null)
 
   useEffect(() => {
@@ -39,6 +43,12 @@ export function Dashboard({ store }: { store: Store }) {
       /* ignore */
     }
   }, [tab])
+
+  // everything visible in the feed counts as seen
+  const { markSeen, posts } = feed
+  useEffect(() => {
+    if (tab === 'feed') markSeen()
+  }, [tab, posts, markSeen])
 
   useEffect(() => {
     if (!toast) return
@@ -108,6 +118,10 @@ export function Dashboard({ store }: { store: Store }) {
           Venner
           {activeFriends > 0 && <span className="badge">{activeFriends}</span>}
         </button>
+        <button className={tab === 'feed' ? 'on' : ''} onClick={() => setTab('feed')}>
+          Feed
+          {feed.unseen > 0 && tab !== 'feed' && <span className="badge">{feed.unseen}</span>}
+        </button>
       </nav>
 
       <main className="content" key={tab}>
@@ -141,8 +155,10 @@ export function Dashboard({ store }: { store: Store }) {
             )}
             <History a={a} />
           </>
-        ) : (
+        ) : tab === 'venner' ? (
           <Friends members={store.members} me={user.key} now={now} />
+        ) : (
+          <Feed feed={feed} members={store.members} me={user.key} now={now} />
         )}
 
         <p className="fineprint">
@@ -152,10 +168,33 @@ export function Dashboard({ store }: { store: Store }) {
       </main>
 
       <div className="dock">
-        <button className="btn btn-primary btn-xl" onClick={() => setLogOpen(true)}>
-          <Plus size={22} strokeWidth={2.4} /> Logg drikke
-        </button>
+        {tab === 'feed' ? (
+          <div className="dock-row">
+            <label htmlFor="photo-any" className="btn btn-secondary btn-xl dock-side" aria-label="Velg fra bilder">
+              <ImageIcon size={22} />
+            </label>
+            <label htmlFor="photo-camera" className="btn btn-primary btn-xl">
+              <Camera size={22} strokeWidth={2.2} /> Ta bilde
+            </label>
+          </div>
+        ) : (
+          <button className="btn btn-primary btn-xl" onClick={() => setLogOpen(true)}>
+            <Plus size={22} strokeWidth={2.4} /> Logg drikke
+          </button>
+        )}
       </div>
+
+      <PhotoInputs onPick={setPhoto} />
+      <Composer
+        file={photo}
+        promille={a.v}
+        onClose={() => setPhoto(null)}
+        onShare={async (caption) => {
+          const ok = photo ? await feed.create(photo, caption, a.v) : false
+          if (ok) setToast({ text: 'Bildet er delt', id: Date.now() })
+          return ok
+        }}
+      />
 
       {toast && (
         <div className="toast" role="status" key={toast.id}>
