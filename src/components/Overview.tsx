@@ -1,13 +1,13 @@
 import { Trash2 } from 'lucide-react'
 import { DRINK_BY_ID } from '../data/drinks'
 import {
-  describe,
   duration,
   fmtAmount,
   fmtNum,
   fmtPromille,
   fmtTime,
   level,
+  statusText,
   units,
   type Analysis,
   type Entry,
@@ -28,8 +28,8 @@ export function Hero({ a, label = 'Promille nå' }: { a: Analysis; label?: strin
       <div className="hero-meta">
         <span className="status">
           <i />
-          {describe(a.v)}
-          {a.rising && <em> · stiger</em>}
+          {statusText(a)}
+          {a.rising && a.v >= 0.01 && <em> · stiger</em>}
         </span>
         <span className="muted">
           {a.sober ? `Edru ca. kl. ${fmtTime(a.sober)}` : a.active ? 'Alkoholen er forbrent' : 'Ingen drikke logget'}

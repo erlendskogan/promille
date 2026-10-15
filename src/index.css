@@ -1560,6 +1560,10 @@ section:first-child > .group-title {
   gap: 14px;
 }
 
+.stack > * {
+  flex-shrink: 0;
+}
+
 @media (max-width: 360px) {
   .spark {
     display: none;

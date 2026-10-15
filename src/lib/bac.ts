@@ -159,6 +159,10 @@ export function analyze(entries: Entry[], p: Profile, now: number) {
   }
 }
 
+/** Status text, aware of alcohol that is still being absorbed */
+export const statusText = (a: { v: number; rising: boolean }) =>
+  a.v < 0.01 && a.rising ? 'Alkoholen tas opp' : describe(a.v)
+
 export const level = (v: number) => (v < 0.01 ? 'sober' : v < 0.6 ? 'low' : v < 1.2 ? 'mid' : 'high')
 
 export function duration(ms: number) {

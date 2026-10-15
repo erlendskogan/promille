@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
 import { Drawer } from 'vaul'
 import { Share, X } from 'lucide-react'
-import { analyze, describe, fmtPromille, fmtTime, level, type Analysis } from '../lib/bac'
+import { analyze, fmtPromille, fmtTime, level, statusText, type Analysis } from '../lib/bac'
 import type { Member } from '../lib/store'
 import { EntryList, Evening, Hero } from './Overview'
 
@@ -124,17 +124,19 @@ function PersonRow({ r, rank, me, now, onClick }: { r: Row; rank?: number; me: b
           </strong>
           <small>
             {a.active
-              ? `${describe(a.v)}${last ? ` · ${last.name} ${fmtTime(last.time)}` : ''}`
+              ? `${statusText(a)}${last ? ` · ${last.name} ${fmtTime(last.time)}` : ''}`
               : last
                 ? `Sist aktiv ${lastSeen(last.time, now)}`
                 : 'Ingen drikke ennå'}
           </small>
         </span>
         {a.active && <Spark a={a} now={now} />}
-        <span className="person-v">
-          {fmtPromille(a.v)}
-          <small>‰</small>
-        </span>
+        {a.active && (
+          <span className="person-v">
+            {fmtPromille(a.v)}
+            <small>‰</small>
+          </span>
+        )}
       </button>
     </li>
   )
