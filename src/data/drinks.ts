@@ -1,4 +1,4 @@
-export type Category = 'ol' | 'cider' | 'vin' | 'sprit' | 'drinker'
+export type Category = 'ol' | 'cider' | 'seltzer' | 'vin' | 'sprit' | 'drinker'
 
 export type Vessel =
   | 'can'
@@ -45,6 +45,7 @@ export interface Drink {
 export const CATEGORIES: { id: Category; label: string }[] = [
   { id: 'ol', label: 'Øl' },
   { id: 'cider', label: 'Cider og rusbrus' },
+  { id: 'seltzer', label: 'Seltzer' },
   { id: 'vin', label: 'Vin' },
   { id: 'sprit', label: 'Sprit' },
   { id: 'drinker', label: 'Drinker' },
@@ -105,6 +106,22 @@ const shot = (id: string, name: string, abv: number, liquid: string, accent: str
   note,
 })
 
+const seltzer = (id: string, name: string, accent: string, liquid: string, abv = 4.5): Drink => ({
+  id,
+  name,
+  category: 'seltzer',
+  abv,
+  unit: 'volume',
+  sizes: [
+    { label: 'Boks', ml: 330 },
+    { label: 'Stor', ml: 500 },
+  ],
+  defaultSize: 0,
+  vessel: 'can-tall',
+  liquid,
+  accent,
+})
+
 const cocktail = (
   id: string,
   name: string,
@@ -154,9 +171,15 @@ export const DRINKS: Drink[] = [
   { id: 'kopp-pear', name: 'Kopparberg Pære', category: 'cider', abv: 4.5, unit: 'volume', sizes: can, defaultSize: 0, vessel: 'can-tall', liquid: '#E9D27A', accent: '#C9A93A' },
   { id: 'kopp-straw', name: 'Kopparberg Jordbær & Lime', category: 'cider', abv: 4.5, unit: 'volume', sizes: can, defaultSize: 0, vessel: 'can-tall', liquid: '#D8435C', accent: '#D8435C' },
   { id: 'smirnoff-ice', name: 'Smirnoff Ice', category: 'cider', abv: 4.5, unit: 'volume', sizes: [{ label: 'Flaske', ml: 275 }, { label: 'Boks', ml: 330 }], defaultSize: 0, vessel: 'bottle', liquid: '#D9DEE3', accent: '#B5162B' },
-  { id: 'seltzer', name: 'Hard seltzer', category: 'cider', abv: 4.5, unit: 'volume', sizes: can, defaultSize: 0, vessel: 'can-tall', liquid: '#E7EEF2', accent: '#E8E8EA' },
   { id: 'breezer', name: 'Breezer', category: 'cider', abv: 4.0, unit: 'volume', sizes: [{ label: 'Flaske', ml: 275 }], defaultSize: 0, vessel: 'bottle', liquid: '#F08A3C', accent: '#F08A3C' },
   { id: 'cider-sterk', name: 'Sterk cider', category: 'cider', abv: 7.0, unit: 'volume', sizes: [{ label: 'Flaske', ml: 330 }, { label: 'Stor', ml: 500 }], defaultSize: 0, vessel: 'bottle', liquid: '#E3B64A', accent: '#7A8F3A' },
+
+  // Seltzer
+  seltzer('ringnes-seltzer', 'Ringnes Hard Seltzer', '#E9ECEF', '#C8202F'),
+  seltzer('fender', 'Fender', '#D9EEF0', '#3FA7B5'),
+  seltzer('grans-seltzer', 'Grans Seltzer', '#F1E3EA', '#B22A2A'),
+  seltzer('hansa-seltzer', 'Hansa Seltzer', '#E7E2D6', '#D4A23A'),
+  seltzer('seltzer', 'Annen hard seltzer', '#E8E8EA', '#9AA3AD'),
 
   // Vin
   { id: 'rodvin', name: 'Rødvin', category: 'vin', abv: 13.5, unit: 'volume', sizes: glass, defaultSize: 0, vessel: 'wine-glass', liquid: '#7A1630', accent: '#7A1630' },

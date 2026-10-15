@@ -1172,7 +1172,7 @@ section:first-child > .group-title {
   align-items: center;
   gap: 14px;
   padding: 14px;
-  margin-top: 4px;
+  margin: 4px 0 12px;
   border-radius: 16px;
   border: 1px dashed var(--line-strong);
   text-align: left;
