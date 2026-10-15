@@ -1787,3 +1787,132 @@ section:first-child > .group-title {
 .detail section .group-title {
   margin: 10px 2px 8px;
 }
+
+/* ───── PIN ───── */
+.pin-card {
+  gap: 14px;
+  padding-top: 24px;
+}
+
+.pin-head {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 10px;
+}
+
+.pin-head h1 {
+  font-size: 30px;
+}
+
+.pin-head p {
+  max-width: 300px;
+  font-size: 15px;
+  line-height: 1.45;
+}
+
+.pinpad {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+
+.pin-dots {
+  display: flex;
+  gap: 18px;
+  padding: 10px 0 4px;
+}
+
+.pin-dots i {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  border: 2px solid var(--line-strong);
+  transition: background 0.15s, border-color 0.15s, transform 0.15s;
+}
+
+.pin-dots i.on {
+  background: var(--accent);
+  border-color: var(--accent);
+  transform: scale(1.08);
+}
+
+.pin-dots.shake {
+  animation: shake 0.4s;
+}
+
+@keyframes shake {
+  20%, 60% { transform: translateX(-8px); }
+  40%, 80% { transform: translateX(8px); }
+}
+
+.pin-error {
+  min-height: 20px;
+  font-size: 14px;
+  color: var(--danger);
+  text-align: center;
+}
+
+.pin-keys {
+  display: grid;
+  grid-template-columns: repeat(3, 76px);
+  gap: 12px 22px;
+  justify-content: center;
+}
+
+.pin-keys button {
+  width: 76px;
+  height: 76px;
+  border-radius: 50%;
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+  font-size: 28px;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  transition: background 0.1s, transform 0.1s;
+}
+
+.pin-keys button:active:not(:disabled) {
+  background: var(--surface-3);
+  transform: scale(0.94);
+}
+
+.pin-keys button:disabled {
+  opacity: 0.5;
+}
+
+.pin-keys .pin-del {
+  background: transparent;
+  border-color: transparent;
+  display: grid;
+  place-items: center;
+  color: var(--text-2);
+}
+
+.pin-keys .pin-del:disabled {
+  opacity: 0;
+}
+
+.pin-change {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 12px;
+  padding: 16px;
+  border-radius: 18px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  text-align: center;
+}
+
+.pin-change .pin-keys {
+  grid-template-columns: repeat(3, 64px);
+}
+
+.pin-change .pin-keys button {
+  width: 64px;
+  height: 64px;
+  font-size: 24px;
+}

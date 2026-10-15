@@ -30,7 +30,7 @@ interface EntryRow {
 
 type Owned = Entry & { userKey: string }
 
-const CURRENT = 'promille:current'
+const SESSION = 'promille:session'
 const LEGACY = 'promille:v1'
 const DAY = 86_400_000
 
@@ -57,6 +57,29 @@ const toRow = (e: Owned): EntryRow => ({
   count: e.count,
   time: new Date(e.time).toISOString(),
 })
+
+const rowFor = (e: Entry) => {
+  const { user_key: _k, ...row } = toRow({ ...e, userKey: '' })
+  return row
+}
+
+export type LoginResult =
+  | { ok: true }
+  | { ok: false; error: 'wrong_pin' | 'locked' | 'no_user' | 'name_taken' | 'bad_pin' | 'network'; left?: number; until?: string }
+
+interface Session {
+  key: string
+  token: string
+}
+
+const readSession = (): Session | null => {
+  try {
+    const s = JSON.parse(storage.get(SESSION) ?? 'null')
+    return s?.key && s?.token ? s : null
+  } catch {
+    return null
+  }
+}
 
 const newId = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 10)
 
@@ -95,21 +118,30 @@ const without = <T,>(rec: Record<string, T>, drop: (k: string, v: T) => boolean)
 export function useStore() {
   const [people, setPeople] = useState<Record<string, Person>>({})
   const [entries, setEntries] = useState<Record<string, Owned>>({})
-  const [current, setCurrent] = useState<string | null>(() => storage.get(CURRENT))
+  const [session, setSession] = useState<Session | null>(readSession)
+  const current = session?.key ?? null
   const [status, setStatus] = useState<'loading' | 'ready' | 'error'>('loading')
   const [error, setError] = useState<string | null>(null)
-  const currentRef = useRef(current)
+  const sessionRef = useRef(session)
   useEffect(() => {
-    currentRef.current = current
-  }, [current])
+    sessionRef.current = session
+  }, [session])
 
-  const fail = useCallback(() => setError('Fikk ikke lagret. Sjekk nettforbindelsen.'), [])
-
-  const setMe = useCallback((key: string | null) => {
-    currentRef.current = key
-    setCurrent(key)
-    storage.set(CURRENT, key)
+  const setMe = useCallback((s: Session | null) => {
+    sessionRef.current = s
+    setSession(s)
+    storage.set(SESSION, s ? JSON.stringify(s) : null)
   }, [])
+
+  const fail = useCallback(
+    (err?: { code?: string } | null) => {
+      if (err?.code === '28000') {
+        setMe(null)
+        setError('Du er logget ut. Logg inn med PIN-koden din igjen.')
+      } else setError('Fikk ikke lagret. Sjekk nettforbindelsen.')
+    },
+    [setMe],
+  )
 
   const loadOwn = useCallback(async (key: string) => {
     const { data, error } = await supabase.from('entries').select('*').eq('user_key', key).order('time').limit(5000)
@@ -135,8 +167,11 @@ export function useStore() {
       ...byId((e.data as EntryRow[]).map(toEntry)),
     }))
     setStatus('ready')
-    const me = currentRef.current
-    if (me && !ppl[me]) setMe(null)
+    const me = sessionRef.current
+    if (me) {
+      const who = await supabase.rpc('promille_whoami', { p_token: me.token })
+      if (!who.error && who.data !== me.key) setMe(null)
+    }
   }, [setMe])
 
   useEffect(() => {
@@ -190,41 +225,81 @@ export function useStore() {
 
   const user = (current && members.find((m) => m.key === current)) || null
 
-  const login = useCallback((name: string) => setMe(userKey(name)), [setMe])
+  /** Upload entries saved by the first, local-only version of the app */
+  const migrate = useCallback(async (token: string, key: string) => {
+    const old = legacyEntries(key)
+    if (!old.length) return
+    const res = await supabase.rpc('promille_add_entries', { p_token: token, p_entries: old.map(rowFor) })
+    if (!res.error) setEntries((s) => ({ ...s, ...byId(old.map((e) => ({ ...e, userKey: key }))) }))
+  }, [])
 
-  const register = useCallback(
-    async (p: Profile) => {
-      const key = userKey(p.name)
-      const row: UserRow = { key, name: p.name.trim(), weight: p.weight, sex: p.sex }
-      const { error } = await supabase.from('users').upsert(row)
-      if (error) {
-        fail()
-        return false
-      }
-      setPeople((s) => ({ ...s, [key]: toPerson(row) }))
-      const old = legacyEntries(key).map((e) => ({ ...e, userKey: key }))
-      if (old.length) {
-        const res = await supabase.from('entries').upsert(old.map(toRow))
-        if (!res.error) setEntries((s) => ({ ...s, ...byId(old) }))
-      }
-      setMe(key)
-      return true
+  const finish = useCallback(
+    async (data: unknown): Promise<LoginResult> => {
+      const r = data as { token?: string; key?: string; error?: string; left?: number; until?: string }
+      if (!r?.token || !r.key) return { ok: false, error: (r?.error as 'wrong_pin') ?? 'network', left: r?.left, until: r?.until }
+      setMe({ key: r.key, token: r.token })
+      await load()
+      migrate(r.token, r.key)
+      return { ok: true }
     },
-    [fail, setMe],
+    [setMe, load, migrate],
   )
 
-  const logout = useCallback(() => setMe(null), [setMe])
+  const login = useCallback(
+    async (name: string, pin: string): Promise<LoginResult> => {
+      const { data, error } = await supabase.rpc('promille_login', { p_name: name, p_pin: pin })
+      if (error) return { ok: false, error: 'network' }
+      return finish(data)
+    },
+    [finish],
+  )
+
+  const register = useCallback(
+    async (p: Profile, pin: string): Promise<LoginResult> => {
+      const { data, error } = await supabase.rpc('promille_register', {
+        p_name: p.name,
+        p_weight: p.weight,
+        p_sex: p.sex,
+        p_pin: pin,
+      })
+      if (error) return { ok: false, error: 'network' }
+      return finish(data)
+    },
+    [finish],
+  )
+
+  const hasPin = useCallback(async (name: string) => {
+    const { data } = await supabase.rpc('promille_has_pin', { p_name: name })
+    return data !== false
+  }, [])
+
+  const changePin = useCallback(
+    async (pin: string) => {
+      const me = sessionRef.current
+      if (!me) return false
+      const { error } = await supabase.rpc('promille_change_pin', { p_token: me.token, p_pin: pin })
+      if (error) fail(error)
+      return !error
+    },
+    [fail],
+  )
+
+  const logout = useCallback(() => {
+    const me = sessionRef.current
+    if (me) supabase.rpc('promille_logout', { p_token: me.token })
+    setMe(null)
+  }, [setMe])
 
   const addEntry = useCallback(
     async (e: Omit<Entry, 'id'>) => {
-      const me = currentRef.current
+      const me = sessionRef.current
       if (!me) return
-      const full: Owned = { ...e, id: newId(), userKey: me }
+      const full: Owned = { ...e, id: newId(), userKey: me.key }
       setEntries((s) => ({ ...s, [full.id]: full }))
-      const { error } = await supabase.from('entries').insert(toRow(full))
+      const { error } = await supabase.rpc('promille_add_entries', { p_token: me.token, p_entries: [rowFor(full)] })
       if (error) {
         setEntries((s) => without(s, (k) => k === full.id))
-        fail()
+        fail(error)
       }
     },
     [fail],
@@ -232,12 +307,13 @@ export function useStore() {
 
   const removeEntry = useCallback(
     async (entry: Entry) => {
+      const me = sessionRef.current
+      if (!me) return
       setEntries((s) => without(s, (k) => k === entry.id))
-      const { error } = await supabase.from('entries').delete().eq('id', entry.id)
+      const { error } = await supabase.rpc('promille_delete_entry', { p_token: me.token, p_id: entry.id })
       if (error) {
-        const me = currentRef.current
-        if (me) setEntries((s) => ({ ...s, [entry.id]: { ...entry, userKey: me } }))
-        fail()
+        setEntries((s) => ({ ...s, [entry.id]: { ...entry, userKey: me.key } }))
+        fail(error)
       }
     },
     [fail],
@@ -247,9 +323,9 @@ export function useStore() {
   const pending = useRef<Partial<Profile>>({})
   const updateProfile = useCallback(
     (p: Partial<Profile>) => {
-      const me = currentRef.current
+      const me = sessionRef.current
       if (!me) return
-      setPeople((s) => ({ ...s, [me]: { ...s[me], ...p } }))
+      setPeople((s) => ({ ...s, [me.key]: { ...s[me.key], ...p } }))
       pending.current = { ...pending.current, ...p }
       const w = pending.current.weight
       if (w !== undefined && (w < 30 || w > 250)) return // half-typed; saved on blur
@@ -257,27 +333,31 @@ export function useStore() {
       saveTimer.current = setTimeout(async () => {
         const patch = pending.current
         pending.current = {}
-        const { error } = await supabase.from('users').update(patch).eq('key', me)
-        if (error) fail()
+        const { error } = await supabase.rpc('promille_update_profile', {
+          p_token: me.token,
+          p_weight: patch.weight ?? null,
+          p_sex: patch.sex ?? null,
+        })
+        if (error) fail(error)
       }, 600)
     },
     [fail],
   )
 
   const clearEntries = useCallback(async () => {
-    const me = currentRef.current
+    const me = sessionRef.current
     if (!me) return
-    setEntries((s) => without(s, (_, e) => e.userKey === me))
-    const { error } = await supabase.from('entries').delete().eq('user_key', me)
-    if (error) fail()
+    setEntries((s) => without(s, (_, e) => e.userKey === me.key))
+    const { error } = await supabase.rpc('promille_clear_entries', { p_token: me.token })
+    if (error) fail(error)
   }, [fail])
 
   const deleteUser = useCallback(async () => {
-    const me = currentRef.current
+    const me = sessionRef.current
     if (!me) return
-    const { error } = await supabase.from('users').delete().eq('key', me)
-    if (error) return fail()
-    setPeople((s) => without(s, (k) => k === me))
+    const { error } = await supabase.rpc('promille_delete_user', { p_token: me.token })
+    if (error) return fail(error)
+    setPeople((s) => without(s, (k) => k === me.key))
     setMe(null)
   }, [fail, setMe])
 
@@ -292,6 +372,8 @@ export function useStore() {
     exists: (n: string) => !!people[userKey(n)],
     login,
     register,
+    hasPin,
+    changePin,
     logout,
     addEntry,
     removeEntry,

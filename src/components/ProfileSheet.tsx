@@ -1,15 +1,21 @@
 import { useEffect, useState } from 'react'
 import { Drawer } from 'vaul'
-import { LogOut, X } from 'lucide-react'
+import { KeyRound, LogOut, X } from 'lucide-react'
 import type { Store } from '../lib/store'
+import { PinPad } from './PinPad'
 import { ProfileFields } from './ProfileFields'
 
 export function ProfileSheet({ open, onOpenChange, store }: { open: boolean; onOpenChange: (o: boolean) => void; store: Store }) {
   const user = store.user!
   const [confirm, setConfirm] = useState<'clear' | 'delete' | null>(null)
+  const [pinStep, setPinStep] = useState<'new' | 'repeat' | 'done' | null>(null)
+  const [newPin, setNewPin] = useState('')
 
   useEffect(() => {
-    if (!open) setConfirm(null)
+    if (!open) {
+      setConfirm(null)
+      setPinStep(null)
+    }
   }, [open])
 
   return (
@@ -38,6 +44,35 @@ export function ProfileSheet({ open, onOpenChange, store }: { open: boolean; onO
               onWeight={(w) => store.updateProfile({ weight: Math.max(1, w) })}
               onSex={(s) => store.updateProfile({ sex: s })}
             />
+
+            {pinStep === 'new' || pinStep === 'repeat' ? (
+              <div className="pin-change">
+                <strong>{pinStep === 'new' ? 'Ny PIN-kode' : 'Gjenta ny PIN-kode'}</strong>
+                <PinPad
+                  key={pinStep}
+                  onComplete={async (pin) => {
+                    if (pinStep === 'new') {
+                      setNewPin(pin)
+                      setPinStep('repeat')
+                      return
+                    }
+                    if (pin !== newPin) {
+                      setPinStep('new')
+                      return 'Kodene var ulike. Prøv igjen.'
+                    }
+                    if (await store.changePin(pin)) setPinStep('done')
+                    else return 'Fikk ikke lagret. Prøv igjen.'
+                  }}
+                />
+                <button className="btn btn-secondary" onClick={() => setPinStep(null)}>
+                  Avbryt
+                </button>
+              </div>
+            ) : (
+              <button className="btn btn-secondary" onClick={() => setPinStep('new')}>
+                <KeyRound size={17} /> {pinStep === 'done' ? 'PIN-koden er endret' : 'Bytt PIN-kode'}
+              </button>
+            )}
 
             <div className="profile-actions">
               <button
@@ -70,7 +105,7 @@ export function ProfileSheet({ open, onOpenChange, store }: { open: boolean; onO
                 {confirm === 'delete' ? 'Trykk igjen for å slette brukeren' : 'Slett bruker'}
               </button>
             </div>
-            <p className="fineprint">Alle som bruker appen kan se navnet, promillen og drikken din.</p>
+            <p className="fineprint">Alle som bruker appen kan se navnet, promillen og drikken din, men bare du kan endre den.</p>
           </div>
         </Drawer.Content>
       </Drawer.Portal>
