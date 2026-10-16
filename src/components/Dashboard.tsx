@@ -165,7 +165,7 @@ export function Dashboard({ store }: { store: Store }) {
         )}
 
         <p className="fineprint">
-          Beregnet med Widmarks formel og en forbrenning på 0,15 ‰ i timen. Faktisk promille varierer med mat, tempo og
+          Beregnet med Widmarks formel, 90 % opptak og en forbrenning på 0,17 ‰ i timen. Faktisk promille varierer med mat, tempo og
           kropp. Kjør aldri bil etter å ha drukket.
         </p>
       </main>

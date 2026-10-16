@@ -26,7 +26,9 @@ const ETHANOL_DENSITY = 0.789
 /** Norsk alkoholenhet ≈ 12 g ren alkohol */
 export const GRAMS_PER_UNIT = 12
 /** Typisk forbrenning, promille per time */
-export const ELIMINATION = 0.15
+export const ELIMINATION = 0.17
+/** Andel av alkoholen som faktisk tas opp i blodet */
+const ABSORBED = 0.9
 /** Minutter fra drikken er drukket til den er tatt opp */
 const ABSORPTION_MIN = 45
 const MIN = 60_000
@@ -36,14 +38,14 @@ export const grams = (e: Pick<Entry, 'ml' | 'abv' | 'count'>) =>
 
 export const units = (e: Pick<Entry, 'ml' | 'abv' | 'count'>) => grams(e) / GRAMS_PER_UNIT
 
-const widmarkR = (sex?: Sex) => (sex === 'm' ? 0.68 : 0.55)
+const widmarkR = (sex?: Sex) => (sex === 'm' ? 0.68 : 0.6)
 
 /** Peak contribution of a set of grams, ignoring elimination */
-export const promilleOf = (g: number, p: Pick<Profile, 'weight' | 'sex'>) => g / (p.weight * widmarkR(p.sex))
+export const promilleOf = (g: number, p: Pick<Profile, 'weight' | 'sex'>) => (ABSORBED * g) / (p.weight * widmarkR(p.sex))
 
 /** Promille one entry adds: from the database when known, else from your own body */
 const doseOf = (e: Entry, p: Body) =>
-  e.dose ?? (p?.weight ? grams(e) / (p.weight * widmarkR(p.sex)) : 0)
+  ABSORBED * (e.dose ?? (p?.weight ? grams(e) / (p.weight * widmarkR(p.sex)) : 0))
 
 export interface Session {
   entries: Entry[]
